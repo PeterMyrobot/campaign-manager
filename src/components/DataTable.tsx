@@ -2,12 +2,15 @@ import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getExpandedRowModel,
   useReactTable,
   type ColumnDef,
   type SortingState,
   type ColumnFiltersState,
   type VisibilityState,
-  type RowSelectionState
+  type RowSelectionState,
+  type ExpandedState,
+  type Row
 } from "@tanstack/react-table"
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -19,10 +22,13 @@ interface DataTableProps<TData, TValue> {
   setColumnFilters: (value: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) => void
   setColumnVisibility: (value: VisibilityState | ((prev: VisibilityState) => VisibilityState)) => void
   setRowSelection: (value: RowSelectionState | ((prev: RowSelectionState) => RowSelectionState)) => void
+  setExpanded?: (value: ExpandedState | ((prev: ExpandedState) => ExpandedState)) => void
   sorting: SortingState
   columnFilters: ColumnFiltersState
   columnVisibility: VisibilityState
   rowSelection: RowSelectionState
+  expanded?: ExpandedState
+  renderSubRow?: (row: Row<TData>) => React.ReactNode
 }
 
 function DataTable<TData, TValue>({
@@ -32,10 +38,13 @@ function DataTable<TData, TValue>({
   setColumnFilters,
   setColumnVisibility,
   setRowSelection,
+  setExpanded,
   sorting,
   columnFilters,
   columnVisibility,
-  rowSelection
+  rowSelection,
+  expanded,
+  renderSubRow
 }: DataTableProps<TData, TValue>) {
 
   const table = useReactTable({
@@ -43,6 +52,7 @@ function DataTable<TData, TValue>({
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     // getFilteredRowModel: getFilteredRowModel(), // not needed for manual server-side filtering
     manualFiltering: true,
@@ -51,11 +61,13 @@ function DataTable<TData, TValue>({
     manualSorting: true, //use pre-sorted row model instead of sorted row model
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    onExpandedChange: setExpanded,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection
+      rowSelection,
+      ...(expanded !== undefined && { expanded })
     },
 
   })
@@ -87,19 +99,28 @@ function DataTable<TData, TValue>({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
+                <>
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                  {row.getIsExpanded() && renderSubRow && (
+                    <TableRow key={`${row.id}-expanded`}>
+                      <TableCell colSpan={columns.length}>
+                        {renderSubRow(row)}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
               ))
             ) : (
               <TableRow>

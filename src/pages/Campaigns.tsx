@@ -2,11 +2,31 @@ import { useCampaigns } from '@/hooks/useCampaigns'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
-import { ArrowUpDown } from 'lucide-react'
+import { ArrowUpDown, ChevronDown, ChevronRight } from 'lucide-react'
 import DataTable from '@/components/DataTable'
 import { useState } from 'react'
 
 const columns = [
+  {
+    id: "expand",
+    header: () => null,
+    cell: ({ row }) => (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => row.toggleExpanded()}
+        className="p-0 h-8 w-8"
+      >
+        {row.getIsExpanded() ? (
+          <ChevronDown className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
+      </Button>
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     id: "select",
     header: ({ table }) => (
@@ -119,6 +139,7 @@ function Campaigns() {
   const [columnVisibility, setColumnVisibility] =
     useState({})
   const [rowSelection, setRowSelection] = useState({})
+  const [expanded, setExpanded] = useState({})
   return (
     <div className='container'>
       Campaigns
@@ -172,10 +193,23 @@ function Campaigns() {
         setColumnFilters={setColumnFilters}
         setColumnVisibility={setColumnVisibility}
         setRowSelection={setRowSelection}
+        setExpanded={setExpanded}
         sorting={sorting}
         columnFilters={columnFilters}
         columnVisibility={columnVisibility}
         rowSelection={rowSelection}
+        expanded={expanded}
+        renderSubRow={(row) => (
+          <div className="p-4 bg-muted/50">
+            <h4 className="font-semibold mb-2">Transaction Details</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div><span className="font-medium">ID:</span> {row.original.id}</div>
+              <div><span className="font-medium">Email:</span> {row.original.email}</div>
+              <div><span className="font-medium">Status:</span> {row.original.status}</div>
+              <div><span className="font-medium">Amount:</span> ${row.original.amount}</div>
+            </div>
+          </div>
+        )}
       />
     </div>
   )
