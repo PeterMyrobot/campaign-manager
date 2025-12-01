@@ -1,12 +1,11 @@
 import { campaignService, type PaginatedResponse } from "@/services/firebase/campaignService";
 import type { Campaign, CampaignFilters } from "@/types/campaign";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 export function useCampaigns(filters?: CampaignFilters) {
   return useQuery<PaginatedResponse<Campaign>>({
     queryKey: ['campaigns', filters],
     queryFn: () => campaignService.getByFilter(filters ?? {}),
-    placeholderData: keepPreviousData,
   });
 }
 

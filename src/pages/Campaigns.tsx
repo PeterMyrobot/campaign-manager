@@ -280,28 +280,26 @@ function Campaigns() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div>Loading campaigns...</div>
-      ) : (
-        <DataTable
-          data={campaigns}
-          columns={columns}
-          setSorting={setSorting}
-          setColumnFilters={setColumnFilters}
-          setColumnVisibility={setColumnVisibility}
-          setRowSelection={setRowSelection}
-          sorting={sorting}
-          columnFilters={columnFilters}
-          columnVisibility={columnVisibility}
-          rowSelection={rowSelection}
-          pagination={pagination}
-          setPagination={setPagination}
-          totalCount={totalCount}
-          lastDoc={response?.lastDoc}
-          firstDoc={response?.firstDoc}
-          onPaginationChange={handlePaginationChange}
-        />
-      )}
+
+      <DataTable
+        data={campaigns}
+        columns={columns}
+        setSorting={setSorting}
+        setColumnFilters={setColumnFilters}
+        setColumnVisibility={setColumnVisibility}
+        setRowSelection={setRowSelection}
+        sorting={sorting}
+        columnFilters={columnFilters}
+        columnVisibility={columnVisibility}
+        rowSelection={rowSelection}
+        pagination={pagination}
+        setPagination={setPagination}
+        totalCount={totalCount}
+        lastDoc={response?.lastDoc}
+        isLoading={isLoading}
+        onPaginationChange={handlePaginationChange}
+      />
+
     </div>
   )
 }

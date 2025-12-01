@@ -37,6 +37,7 @@ interface DataTableProps<TData, TValue> {
   setPagination: (value: PaginationState | ((prev: PaginationState) => PaginationState)) => void
   totalCount?: number
   lastDoc?: unknown
+  isLoading: boolean
   onPaginationChange: (pageIndex: number, pageSize: number, cursor?: unknown) => void
 }
 
@@ -58,6 +59,7 @@ function DataTable<TData, TValue>({
   setPagination,
   totalCount,
   lastDoc,
+  isLoading,
   onPaginationChange,
 }: DataTableProps<TData, TValue>) {
 
@@ -154,7 +156,18 @@ function DataTable<TData, TValue>({
             }
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <>
                   <TableRow
@@ -213,7 +226,7 @@ function DataTable<TData, TValue>({
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
-            disabled={pagination.pageIndex === 0}
+            disabled={isLoading || pagination.pageIndex === 0}
           >
             Previous
           </Button>
@@ -224,7 +237,7 @@ function DataTable<TData, TValue>({
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
-            disabled={totalCount !== undefined && pagination.pageIndex >= pageCount - 1}
+            disabled={isLoading || (totalCount !== undefined && pagination.pageIndex >= pageCount - 1)}
           >
             Next
           </Button>
