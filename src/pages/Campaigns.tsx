@@ -156,7 +156,7 @@ function Campaigns() {
     })
   }
   return (
-    <div className='container py-8'>
+    <div className='container h-full flex flex-col'>
       <h1 className="text-3xl font-bold mb-6">Campaigns</h1>
 
       <div className="flex items-center gap-4 flex-wrap mb-6">
@@ -179,9 +179,9 @@ function Campaigns() {
           <Select
             value={
               dataFilters.createdDateRange ? 'created' :
-              dataFilters.startDateRange ? 'start' :
-              dataFilters.endDateRange ? 'end' :
-              'none'
+                dataFilters.startDateRange ? 'start' :
+                  dataFilters.endDateRange ? 'end' :
+                    'none'
             }
             onValueChange={(value) => {
               // Clear all date filters first, then set the selected one with empty range
@@ -240,8 +240,8 @@ function Campaigns() {
               }}
               placeholder={
                 dataFilters.createdDateRange ? "Select created date range" :
-                dataFilters.startDateRange ? "Select start date range" :
-                "Select end date range"
+                  dataFilters.startDateRange ? "Select start date range" :
+                    "Select end date range"
               }
             />
           )}
@@ -278,26 +278,26 @@ function Campaigns() {
         </div>
       </div>
 
-
-      <DataTable
-        data={campaigns}
-        columns={columns}
-        setSorting={setSorting}
-        setColumnFilters={setColumnFilters}
-        setRowSelection={setRowSelection}
-        sorting={sorting}
-        columnFilters={columnFilters}
-        rowSelection={rowSelection}
-        pagination={pagination}
-        setPagination={setPagination}
-        totalCount={totalCount}
-        lastDoc={response?.lastDoc}
-        isLoading={isLoading}
-        onPaginationChange={handlePaginationChange}
-        enableGlobalSearch={true}
-        globalSearchPlaceholder="Search campaigns... (searches current page)"
-      />
-
+      <div className='flex-1 min-h-0'>
+        <DataTable
+          data={campaigns}
+          columns={columns}
+          setSorting={setSorting}
+          setColumnFilters={setColumnFilters}
+          setRowSelection={setRowSelection}
+          sorting={sorting}
+          columnFilters={columnFilters}
+          rowSelection={rowSelection}
+          pagination={pagination}
+          setPagination={setPagination}
+          totalCount={totalCount}
+          lastDoc={response?.lastDoc}
+          isLoading={isLoading}
+          onPaginationChange={handlePaginationChange}
+          enableGlobalSearch={true}
+          globalSearchPlaceholder="Search campaigns... (searches current page)"
+        />
+      </div>
     </div>
   )
 }

@@ -10,9 +10,6 @@ export interface Campaign {
   lineItemIds: string[];
 }
 
-export type CampaignSortField = 'createdAt' | 'startDate' | 'endDate';
-export type SortOrder = 'asc' | 'desc';
-
 export type DateRangePreset =
   | 'all'
   | 'last7days'

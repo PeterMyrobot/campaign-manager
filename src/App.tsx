@@ -3,6 +3,7 @@ import Layout from './components/Layout'
 import Campaigns from './pages/Campaigns'
 import CampaignDetail from './pages/CampaignDetail'
 import Dashboard from './pages/Dashboard';
+import LineItems from './pages/LineItems';
 
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path='campaigns' element={<Campaigns />} />
           <Route path='campaigns/:id' element={<CampaignDetail />} />
+          <Route path='line-items' element={<LineItems />} />
         </Route>
       </Routes>
     </BrowserRouter>
