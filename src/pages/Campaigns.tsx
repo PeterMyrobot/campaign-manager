@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import DataTable from '@/components/DataTable'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { CampaignFilters } from '@/types/campaign'
 import type { SortingState, ColumnFiltersState, RowSelectionState, PaginationState } from '@tanstack/react-table'
 
@@ -44,7 +45,17 @@ const columns = [
   {
     accessorKey: "name",
     header: "Campaign Name",
-    cell: ({ row }) => <div>{row.getValue("name")}</div>,
+    cell: ({ row }) => {
+      const campaignId = row.original.id;
+      return (
+        <Link
+          to={`/campaigns/${campaignId}`}
+          className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+        >
+          {row.getValue("name")}
+        </Link>
+      );
+    },
   },
   {
     accessorKey: "status",

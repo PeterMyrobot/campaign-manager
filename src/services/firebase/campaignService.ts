@@ -1,4 +1,4 @@
-import { collection, getDocs, getCountFromServer, orderBy, query, where, Timestamp, limit, startAfter, type DocumentData, type QueryDocumentSnapshot, type QueryConstraint } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, getCountFromServer, orderBy, query, where, Timestamp, limit, startAfter, type DocumentData, type QueryDocumentSnapshot, type QueryConstraint } from "firebase/firestore";
 import { db } from "./firebase";
 import type { Campaign, CampaignFilters } from "@/types/campaign";
 
@@ -12,6 +12,29 @@ export interface PaginatedResponse<T> {
 
 
 export const campaignService = {
+
+  // Get a single campaign by ID
+  async getById(id: string): Promise<Campaign | null> {
+    const docRef = doc(db, COLLECTION_NAME, id);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      return null;
+    }
+
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      name: data.name,
+      status: data.status,
+      startDate: data.startDate?.toDate(),
+      endDate: data.endDate?.toDate(),
+      createdAt: data.createdAt?.toDate(),
+      updatedAt: data.updatedAt?.toDate(),
+      invoiceIds: data.invoiceIds || [],
+      lineItemIds: data.lineItemIds || [],
+    };
+  },
 
   // Get total count of campaigns matching filters
   // Note: name filter is applied client-side, so count may be approximate
