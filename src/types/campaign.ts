@@ -1,11 +1,13 @@
 export interface Campaign {
   id: string;
   name: string;
-  status: string;
+  status: 'draft' | 'active' | 'completed' | 'cancelled';
   startDate: Date;
   endDate: Date;
   createdAt: Date;
   updatedAt: Date;
+  invoiceIds: string[];
+  lineItemIds: string[];
 }
 
 export type CampaignSortField = 'createdAt' | 'startDate' | 'endDate';
@@ -30,7 +32,7 @@ export interface DateRange {
 
 export interface CampaignFilters {
   name?: string;
-  status?: string[];
+  statuses?: string[];
   // Date range filters for different fields
   startDateRange?: DateRange;
   endDateRange?: DateRange;

@@ -3,11 +3,11 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   getExpandedRowModel,
+  getFilteredRowModel,
   useReactTable,
   type ColumnDef,
   type SortingState,
   type ColumnFiltersState,
-  type VisibilityState,
   type RowSelectionState,
   type ExpandedState,
   type Row,
@@ -17,18 +17,17 @@ import { useState, useEffect } from 'react'
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface DataTableProps<TData, TValue> {
   data: TData[]
   columns: ColumnDef<TData, TValue>[]
   setSorting: (value: SortingState | ((prev: SortingState) => SortingState)) => void
   setColumnFilters: (value: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) => void
-  setColumnVisibility: (value: VisibilityState | ((prev: VisibilityState) => VisibilityState)) => void
   setRowSelection: (value: RowSelectionState | ((prev: RowSelectionState) => RowSelectionState)) => void
   setExpanded?: (value: ExpandedState | ((prev: ExpandedState) => ExpandedState)) => void
   sorting: SortingState
   columnFilters: ColumnFiltersState
-  columnVisibility: VisibilityState
   rowSelection: RowSelectionState
   expanded?: ExpandedState
   renderSubRow?: (row: Row<TData>) => React.ReactNode
@@ -39,20 +38,19 @@ interface DataTableProps<TData, TValue> {
   lastDoc?: unknown
   isLoading: boolean
   onPaginationChange: (pageIndex: number, pageSize: number, cursor?: unknown) => void
+  // Global search props
+  enableGlobalSearch?: boolean
+  globalSearchPlaceholder?: string
 }
 
 function DataTable<TData, TValue>({
   data,
   columns,
-  setSorting,
   setColumnFilters,
-  setColumnVisibility,
   setRowSelection,
   setExpanded,
   sorting,
-  columnFilters,
-  columnVisibility,
-  rowSelection,
+  columnFilters, rowSelection,
   expanded,
   renderSubRow,
   pagination,
@@ -61,10 +59,16 @@ function DataTable<TData, TValue>({
   lastDoc,
   isLoading,
   onPaginationChange,
+  enableGlobalSearch = false,
+  globalSearchPlaceholder = "Search all columns...",
 }: DataTableProps<TData, TValue>) {
 
   // Store cursors for each page to enable forward/backward navigation
   const [pageCursors, setPageCursors] = useState<Map<number, unknown>>(new Map())
+
+  // Global search state
+  const [globalFilter, setGlobalFilter] = useState('')
+
 
   const pageCount = totalCount ? Math.ceil(totalCount / pagination.pageSize) : -1;
 
@@ -110,31 +114,40 @@ function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     onColumnFiltersChange: setColumnFilters,
-    manualFiltering: true,
-    onSortingChange: setSorting,
-    manualSorting: true, //use pre-sorted row model instead of sorted row model
-    onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onPaginationChange: handlePaginationChange,
     onExpandedChange: setExpanded,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: 'includesString',
     manualPagination: true,
     pageCount,
     state: {
       sorting,
       columnFilters,
-      columnVisibility,
       rowSelection,
       pagination,
+      globalFilter,
       ...(expanded !== undefined && { expanded })
     },
 
   })
   return (
 
-    <div className="w-full">
-      <div id="table-header"></div>
-      <div className="overflow-hidden rounded-md border">
+    <div className="w-full h-full flex flex-col">
+      {enableGlobalSearch && (
+        <div className="flex items-center justify-end pb-4">
+          <Input
+            type="text"
+            placeholder={globalSearchPlaceholder}
+            value={globalFilter ?? ''}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="max-w-sm"
+          />
+        </div>
+      )}
+      <div className="overflow-auto rounded-md border flex-1">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

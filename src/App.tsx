@@ -12,7 +12,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
-          <Route path='campaigns' element={<Campaigns/>}/>
+          <Route path='campaigns' element={<Campaigns />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -1,23 +1,21 @@
 import { useCampaigns, useCampaignCount } from '@/hooks/useCampaigns'
-import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowUpDown } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import DataTable from '@/components/DataTable'
 import { useState } from 'react'
-import type { CampaignFilters, DateRange } from '@/types/campaign'
-import type { SortingState, ColumnFiltersState, VisibilityState, RowSelectionState, PaginationState } from '@tanstack/react-table'
+import type { CampaignFilters } from '@/types/campaign'
+import type { SortingState, ColumnFiltersState, RowSelectionState, PaginationState } from '@tanstack/react-table'
 
 // Available campaign statuses
 const STATUS_OPTIONS = [
   { label: 'Draft', value: 'draft' },
   { label: 'Active', value: 'active' },
-  { label: 'Paused', value: 'paused' },
   { label: 'Completed', value: 'completed' },
-  { label: 'Archived', value: 'archived' },
+  { label: 'Cancelled', value: 'cancelled' },
 ]
 
 const columns = [
@@ -45,35 +43,30 @@ const columns = [
   },
   {
     accessorKey: "name",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Campaign Name
-        <ArrowUpDown />
-      </Button>
-    ),
+    header: "Campaign Name",
     cell: ({ row }) => <div>{row.getValue("name")}</div>,
   },
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("status")}</div>
-    ),
+    cell: ({ row }) => {
+      const status = row.getValue("status") as string;
+      const variantMap = {
+        draft: "secondary" as const,
+        active: "default" as const,
+        completed: "outline" as const,
+        cancelled: "destructive" as const,
+      };
+      return (
+        <Badge variant={variantMap[status as keyof typeof variantMap]}>
+          <span className="capitalize">{status}</span>
+        </Badge>
+      );
+    },
   },
   {
     accessorKey: "startDate",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Start Date
-        <ArrowUpDown />
-      </Button>
-    ),
+    header: "Start Date",
     cell: ({ row }) => {
       const date = row.getValue("startDate") as Date;
       return <div>{date?.toLocaleDateString()}</div>;
@@ -81,15 +74,7 @@ const columns = [
   },
   {
     accessorKey: "endDate",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        End Date
-        <ArrowUpDown />
-      </Button>
-    ),
+    header: "End Date",
     cell: ({ row }) => {
       const date = row.getValue("endDate") as Date;
       return <div>{date?.toLocaleDateString()}</div>;
@@ -97,15 +82,7 @@ const columns = [
   },
   {
     accessorKey: "createdAt",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Created
-        <ArrowUpDown />
-      </Button>
-    ),
+    header: "Created",
     cell: ({ row }) => {
       const date = row.getValue("createdAt") as Date;
       return <div>{date?.toLocaleDateString()}</div>;
@@ -139,7 +116,6 @@ function Campaigns() {
 
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
   const handlePaginationChange = (pageIndex: number, newPageSize: number, cursor?: unknown) => {
@@ -172,111 +148,122 @@ function Campaigns() {
     <div className='container py-8'>
       <h1 className="text-3xl font-bold mb-6">Campaigns</h1>
 
-      <div className="space-y-4 mb-6">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Search:</span>
-            <Input
-              type="text"
-              placeholder="Search by name..."
-              className="w-[200px]"
-              value={dataFilters.name ?? ""}
-              onChange={(e) =>
+      <div className="flex items-center gap-4 flex-wrap mb-6">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Status:</span>
+          <MultiSelect
+            options={STATUS_OPTIONS}
+            selected={dataFilters.statuses ?? []}
+            onChange={(values) =>
+              handleFilterChange({
+                statuses: values.length > 0 ? values : undefined,
+              })
+            }
+            placeholder="All statuses"
+            className="w-[200px]"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Date Filter:</span>
+          <Select
+            value={
+              dataFilters.createdDateRange ? 'created' :
+              dataFilters.startDateRange ? 'start' :
+              dataFilters.endDateRange ? 'end' :
+              'none'
+            }
+            onValueChange={(value) => {
+              // Clear all date filters first, then set the selected one with empty range
+              if (value === 'none') {
                 handleFilterChange({
-                  name: e.target.value || undefined,
+                  createdDateRange: undefined,
+                  startDateRange: undefined,
+                  endDateRange: undefined,
+                })
+              } else if (value === 'created') {
+                handleFilterChange({
+                  createdDateRange: {},
+                  startDateRange: undefined,
+                  endDateRange: undefined,
+                })
+              } else if (value === 'start') {
+                handleFilterChange({
+                  createdDateRange: undefined,
+                  startDateRange: {},
+                  endDateRange: undefined,
+                })
+              } else if (value === 'end') {
+                handleFilterChange({
+                  createdDateRange: undefined,
+                  startDateRange: undefined,
+                  endDateRange: {},
                 })
               }
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Status:</span>
-            <MultiSelect
-              options={STATUS_OPTIONS}
-              selected={dataFilters.status ?? []}
-              onChange={(values) =>
-                handleFilterChange({
-                  status: values.length > 0 ? values : undefined,
-                })
+            }}
+          >
+            <SelectTrigger className="w-[150px]" size="sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No date filter</SelectItem>
+              <SelectItem value="created">Created Date</SelectItem>
+              <SelectItem value="start">Start Date</SelectItem>
+              <SelectItem value="end">End Date</SelectItem>
+            </SelectContent>
+          </Select>
+          {(dataFilters.createdDateRange || dataFilters.startDateRange || dataFilters.endDateRange) && (
+            <DateRangeFilter
+              value={
+                dataFilters.createdDateRange ||
+                dataFilters.startDateRange ||
+                dataFilters.endDateRange
               }
-              placeholder="All statuses"
-              className="w-[200px]"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Per page:</span>
-            <Select
-              value={pagination.pageSize.toString()}
-              onValueChange={(value) => {
-                const newPageSize = parseInt(value)
-                setPagination({
-                  pageIndex: 0,
-                  pageSize: newPageSize,
-                })
-                setPaginationFilters({
-                  page: 0,
-                  pageSize: newPageSize,
-                  cursor: undefined,
-                })
+              onChange={(range) => {
+                if (dataFilters.createdDateRange !== undefined) {
+                  handleFilterChange({ createdDateRange: range })
+                } else if (dataFilters.startDateRange !== undefined) {
+                  handleFilterChange({ startDateRange: range })
+                } else if (dataFilters.endDateRange !== undefined) {
+                  handleFilterChange({ endDateRange: range })
+                }
               }}
-            >
-              <SelectTrigger className="w-[100px]" size="sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">1</SelectItem>
-                <SelectItem value="5">5</SelectItem>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Start Date:</span>
-            <DateRangeFilter
-              value={dataFilters.startDateRange}
-              onChange={(range) =>
-                handleFilterChange({
-                  startDateRange: range,
-                })
+              placeholder={
+                dataFilters.createdDateRange ? "Select created date range" :
+                dataFilters.startDateRange ? "Select start date range" :
+                "Select end date range"
               }
-              placeholder="Any start date"
             />
-          </div>
+          )}
         </div>
-
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">End Date:</span>
-            <DateRangeFilter
-              value={dataFilters.endDateRange}
-              onChange={(range) =>
-                handleFilterChange({
-                  endDateRange: range,
-                })
-              }
-              placeholder="Any end date"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Created:</span>
-            <DateRangeFilter
-              value={dataFilters.createdDateRange}
-              onChange={(range) =>
-                handleFilterChange({
-                  createdDateRange: range,
-                })
-              }
-              placeholder="Any creation date"
-            />
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Per page:</span>
+          <Select
+            value={pagination.pageSize.toString()}
+            onValueChange={(value) => {
+              const newPageSize = parseInt(value)
+              setPagination({
+                pageIndex: 0,
+                pageSize: newPageSize,
+              })
+              setPaginationFilters({
+                page: 0,
+                pageSize: newPageSize,
+                cursor: undefined,
+              })
+            }}
+          >
+            <SelectTrigger className="w-[100px]" size="sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1</SelectItem>
+              <SelectItem value="5">5</SelectItem>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -286,11 +273,9 @@ function Campaigns() {
         columns={columns}
         setSorting={setSorting}
         setColumnFilters={setColumnFilters}
-        setColumnVisibility={setColumnVisibility}
         setRowSelection={setRowSelection}
         sorting={sorting}
         columnFilters={columnFilters}
-        columnVisibility={columnVisibility}
         rowSelection={rowSelection}
         pagination={pagination}
         setPagination={setPagination}
@@ -298,6 +283,8 @@ function Campaigns() {
         lastDoc={response?.lastDoc}
         isLoading={isLoading}
         onPaginationChange={handlePaginationChange}
+        enableGlobalSearch={true}
+        globalSearchPlaceholder="Search campaigns... (searches current page)"
       />
 
     </div>
