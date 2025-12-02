@@ -44,12 +44,13 @@ const columns = [
     header: "Campaign",
     cell: ({ row }) => {
       const campaignId = row.getValue("campaignId") as string;
+      const campaignName = row.original.campaignName;
       return (
         <Link
           to={`/campaigns/${campaignId}`}
           className="text-blue-600 hover:text-blue-800 hover:underline"
         >
-          {campaignId}
+          {campaignName || campaignId}
         </Link>
       );
     },
