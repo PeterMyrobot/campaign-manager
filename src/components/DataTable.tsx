@@ -6,14 +6,12 @@ import {
   getFilteredRowModel,
   useReactTable,
   type ColumnDef,
-  type SortingState,
-  type ColumnFiltersState,
   type RowSelectionState,
   type ExpandedState,
   type Row,
   type PaginationState
 } from "@tanstack/react-table"
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
@@ -22,12 +20,8 @@ import { Input } from '@/components/ui/input'
 interface DataTableProps<TData, TValue> {
   data: TData[]
   columns: ColumnDef<TData, TValue>[]
-  setSorting: (value: SortingState | ((prev: SortingState) => SortingState)) => void
-  setColumnFilters: (value: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) => void
   setRowSelection: (value: RowSelectionState | ((prev: RowSelectionState) => RowSelectionState)) => void
   setExpanded?: (value: ExpandedState | ((prev: ExpandedState) => ExpandedState)) => void
-  sorting: SortingState
-  columnFilters: ColumnFiltersState
   rowSelection: RowSelectionState
   expanded?: ExpandedState
   renderSubRow?: (row: Row<TData>) => React.ReactNode
@@ -46,11 +40,9 @@ interface DataTableProps<TData, TValue> {
 function DataTable<TData, TValue>({
   data,
   columns,
-  setColumnFilters,
   setRowSelection,
   setExpanded,
-  sorting,
-  columnFilters, rowSelection,
+  rowSelection,
   expanded,
   renderSubRow,
   pagination,
@@ -103,10 +95,7 @@ function DataTable<TData, TValue>({
     onPaginationChange(newPagination.pageIndex, newPagination.pageSize, cursor)
   }
 
-  // Reset pagination when filters change
-  useEffect(() => {
-    setPageCursors(new Map())
-  }, [columnFilters, sorting])
+
 
   const table = useReactTable({
     data,
@@ -115,7 +104,6 @@ function DataTable<TData, TValue>({
     getPaginationRowModel: getPaginationRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnFiltersChange: setColumnFilters,
     onRowSelectionChange: setRowSelection,
     onPaginationChange: handlePaginationChange,
     onExpandedChange: setExpanded,
@@ -124,8 +112,6 @@ function DataTable<TData, TValue>({
     manualPagination: true,
     pageCount,
     state: {
-      sorting,
-      columnFilters,
       rowSelection,
       pagination,
       globalFilter,

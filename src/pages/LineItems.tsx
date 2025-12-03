@@ -6,7 +6,7 @@ import DataTable from '@/components/DataTable'
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import type { LineItemFilters, LineItem } from '@/types/lineItem'
-import type { SortingState, ColumnFiltersState, RowSelectionState, PaginationState, Row } from '@tanstack/react-table'
+import type { ColumnFiltersState, RowSelectionState, PaginationState, Row } from '@tanstack/react-table'
 import type { Campaign } from '@/types/campaign'
 
 type EnrichedLineItem = LineItem & {
@@ -33,7 +33,6 @@ const columns = [
         aria-label="Select row"
       />
     ),
-    enableSorting: false,
     enableHiding: false,
   },
   {
@@ -142,8 +141,6 @@ function LineItems() {
   // Fetch total count (only depends on data filters, not pagination)
   const { data: totalCount = 0 } = useLineItemCount(dataFilters)
 
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
   const handlePaginationChange = (pageIndex: number, newPageSize: number, cursor?: unknown) => {
@@ -236,11 +233,7 @@ function LineItems() {
         <DataTable
           data={enrichedLineItems}
           columns={columns}
-          setSorting={setSorting}
-          setColumnFilters={setColumnFilters}
           setRowSelection={setRowSelection}
-          sorting={sorting}
-          columnFilters={columnFilters}
           rowSelection={rowSelection}
           pagination={pagination}
           setPagination={setPagination}

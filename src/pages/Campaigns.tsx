@@ -9,7 +9,7 @@ import DataTable from '@/components/DataTable'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { CampaignFilters } from '@/types/campaign'
-import type { SortingState, ColumnFiltersState, RowSelectionState, PaginationState } from '@tanstack/react-table'
+import type { ColumnFiltersState, RowSelectionState, PaginationState } from '@tanstack/react-table'
 
 // Available campaign statuses
 const STATUS_OPTIONS = [
@@ -39,7 +39,6 @@ const columns = [
         aria-label="Select row"
       />
     ),
-    enableSorting: false,
     enableHiding: false,
   },
   {
@@ -125,8 +124,6 @@ function Campaigns() {
   // Fetch total count (only depends on data filters, not pagination)
   const { data: totalCount = 0 } = useCampaignCount(dataFilters)
 
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
   const handlePaginationChange = (pageIndex: number, newPageSize: number, cursor?: unknown) => {
@@ -282,11 +279,7 @@ function Campaigns() {
         <DataTable
           data={campaigns}
           columns={columns}
-          setSorting={setSorting}
-          setColumnFilters={setColumnFilters}
           setRowSelection={setRowSelection}
-          sorting={sorting}
-          columnFilters={columnFilters}
           rowSelection={rowSelection}
           pagination={pagination}
           setPagination={setPagination}
