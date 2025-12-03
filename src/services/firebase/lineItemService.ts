@@ -1,7 +1,6 @@
 import { collection, getDocs, getDoc, doc, getCountFromServer, query, where, limit, startAfter, type DocumentData, type QueryDocumentSnapshot, type QueryConstraint } from "firebase/firestore";
 import { db } from "./firebase";
 import type { LineItem, LineItemFilters } from "@/types/lineItem";
-import { campaignService } from "./campaignService";
 
 const COLLECTION_NAME = 'lineItems';
 
@@ -23,17 +22,10 @@ export const lineItemService = {
 
     const data = docSnap.data();
 
-    // Fetch campaign data
-    let campaignName: string | undefined;
-    if (data.campaignId) {
-      const campaign = await campaignService.getById(data.campaignId);
-      campaignName = campaign?.name;
-    }
 
     return {
       id: docSnap.id,
       campaignId: data.campaignId,
-      campaignName,
       name: data.name,
       bookedAmount: data.bookedAmount,
       actualAmount: data.actualAmount,

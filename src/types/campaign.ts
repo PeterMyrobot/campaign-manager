@@ -34,8 +34,6 @@ export interface CampaignFilters {
   startDateRange?: DateRange;
   endDateRange?: DateRange;
   createdDateRange?: DateRange;
-  sortBy?: CampaignSortField;
-  sortOrder?: SortOrder;
   // Pagination
   page?: number;
   pageSize?: number;

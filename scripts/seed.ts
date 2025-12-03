@@ -131,7 +131,6 @@ async function seedFromPlacements(): Promise<void> {
     for (const lineItemData of campaignData.line_items) {
       const lineItemDocRef = await addDoc(collection(db, 'lineItems'), {
         campaignId: campaignDocRef.id,
-        campaignName: campaignData.campaign_name,
         name: lineItemData.line_item_name,
         bookedAmount: lineItemData.booked_amount,
         actualAmount: lineItemData.actual_amount,
@@ -149,9 +148,14 @@ async function seedFromPlacements(): Promise<void> {
     const numInvoices = Math.min(Math.floor(Math.random() * 3) + 1, lineItemIds.length);
     const invoiceIds: string[] = [];
 
-    // Shuffle and split line items among invoices
+    // Shuffle line items and only assign 70-80% to invoices (leaving some unassigned)
     const shuffledLineItems = [...lineItemIds].sort(() => Math.random() - 0.5);
-    const itemsPerInvoice = Math.ceil(shuffledLineItems.length / numInvoices);
+    const assignmentPercentage = 0.7 + Math.random() * 0.1; // 70-80%
+    const lineItemsToAssign = shuffledLineItems.slice(
+      0,
+      Math.floor(shuffledLineItems.length * assignmentPercentage)
+    );
+    const itemsPerInvoice = Math.ceil(lineItemsToAssign.length / numInvoices);
 
     for (let i = 0; i < numInvoices; i++) {
       const client = clients[Math.floor(Math.random() * clients.length)];
@@ -160,8 +164,8 @@ async function seedFromPlacements(): Promise<void> {
 
       const invoiceStatus = invoiceStatuses[Math.floor(Math.random() * invoiceStatuses.length)];
 
-      // Assign line items to this invoice
-      const invoiceLineItemIds = shuffledLineItems.slice(
+      // Assign line items to this invoice (only from the subset we're assigning)
+      const invoiceLineItemIds = lineItemsToAssign.slice(
         i * itemsPerInvoice,
         (i + 1) * itemsPerInvoice
       );
@@ -183,7 +187,6 @@ async function seedFromPlacements(): Promise<void> {
 
       const invoiceDocRef = await addDoc(collection(db, 'invoices'), {
         campaignId: campaignDocRef.id,
-        campaignName: campaignData.campaign_name,
         invoiceNumber: `INV-${now.getFullYear()}-${String(invoiceCount + 1).padStart(4, '0')}`,
         lineItemIds: invoiceLineItemIds,
         adjustmentIds: [],

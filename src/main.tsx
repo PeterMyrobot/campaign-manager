@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
+import { CampaignsProvider } from './contexts/CampaignsContext'
 
   const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,7 +18,9 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <CampaignsProvider>
+        <App />
+      </CampaignsProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

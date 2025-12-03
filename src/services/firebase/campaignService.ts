@@ -130,12 +130,9 @@ export const campaignService = {
       }
     }
 
-    // Sorting: When using range filters, must order by that field
-    // Otherwise can use any field (but may require composite index with status filter)
-    const sortDirection = filters.sortOrder || 'desc';
     if (rangeFieldUsed) {
       // Must order by the range field when using date range filters
-      constraints.push(orderBy(rangeFieldUsed, sortDirection));
+      constraints.push(orderBy(rangeFieldUsed, 'desc'));
     } 
 
     // Pagination

@@ -1,7 +1,6 @@
 export interface LineItem {
   id: string;
   campaignId: string;
-  campaignName?: string;
   name: string;
   bookedAmount: number;
   actualAmount: number;

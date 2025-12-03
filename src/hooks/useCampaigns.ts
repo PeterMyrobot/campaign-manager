@@ -25,3 +25,14 @@ export function useCampaignCount(filters?: Omit<CampaignFilters, 'page' | 'pageS
     queryFn: () => campaignService.getTotalCount(filters),
   });
 }
+
+// Hook to get all campaigns (for filter dropdowns)
+export function useAllCampaigns() {
+  return useQuery<Campaign[]>({
+    queryKey: ['campaigns', 'all'],
+    queryFn: async () => {
+      const response = await campaignService.getByFilter({ pageSize: 1000 });
+      return response.data;
+    },
+  });
+}
