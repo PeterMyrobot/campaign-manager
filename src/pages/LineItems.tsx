@@ -3,10 +3,10 @@ import { useCampaignsContext } from '@/contexts/CampaignsContext'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import DataTable from '@/components/DataTable'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import type { LineItemFilters, LineItem } from '@/types/lineItem'
-import type { ColumnFiltersState, RowSelectionState, PaginationState, Row } from '@tanstack/react-table'
+import type { RowSelectionState, PaginationState, Row } from '@tanstack/react-table'
 import type { Campaign } from '@/types/campaign'
 
 type EnrichedLineItem = LineItem & {
@@ -113,24 +113,27 @@ const enrichLineItemData = (data: LineItem[], campaigns: Campaign[]): EnrichedLi
 function LineItems() {
   const { campaigns } = useCampaignsContext()
 
-  // Separate pagination filters from data filters
+  // Data filters (non-pagination)
   const [dataFilters, setDataFilters] = useState<Omit<LineItemFilters, 'page' | 'pageSize' | 'cursor'>>({})
-  const [paginationFilters, setPaginationFilters] = useState<Pick<LineItemFilters, 'page' | 'pageSize' | 'cursor'>>({
-    page: 0,
-    pageSize: 100,
-  })
 
-  // Table state
+  // Pagination state (single source of truth)
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   })
 
-  // Combine filters for the query
-  const queryFilters = { ...dataFilters, ...paginationFilters }
+  // Cursor management for server-side pagination
+  const [cursor, setCursor] = useState<unknown>(undefined)
+  const pageCursorsRef = useRef<Map<number, unknown>>(new Map())
+  const lastDocRef = useRef<unknown>(undefined)
 
   // Fetch line items with pagination
-  const { data: response, isLoading } = useLineItems(queryFilters)
+  const { data: response, isLoading } = useLineItems({
+    ...dataFilters,
+    page: pagination.pageIndex,
+    pageSize: pagination.pageSize,
+    cursor,
+  })
 
   // Enrich line items with campaign names
   const enrichedLineItems = useMemo(
@@ -143,13 +146,40 @@ function LineItems() {
 
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
-  const handlePaginationChange = (pageIndex: number, newPageSize: number, cursor?: unknown) => {
-    setPaginationFilters({
-      page: pageIndex,
-      pageSize: newPageSize,
-      cursor,
-    })
-  }
+  const prevPaginationRef = useRef<PaginationState>(pagination)
+
+  // Store lastDoc from response for cursor-based pagination
+  useEffect(() => {
+    if (response?.lastDoc) {
+      lastDocRef.current = response.lastDoc
+    }
+  }, [response?.lastDoc])
+
+  // Handle pagination changes and update cursor
+  useEffect(() => {
+    const prev = prevPaginationRef.current
+    const current = pagination
+
+    const isNextPage = current.pageIndex > prev.pageIndex
+    const isPrevPage = current.pageIndex < prev.pageIndex
+    const isPageSizeChange = current.pageSize !== prev.pageSize
+
+    if (isNextPage && lastDocRef.current) {
+      // Going forward - use lastDoc from previous page
+      pageCursorsRef.current.set(current.pageIndex, lastDocRef.current)
+      setCursor(lastDocRef.current)
+    } else if (isPrevPage) {
+      // Going backward - use stored cursor
+      const storedCursor = pageCursorsRef.current.get(current.pageIndex)
+      setCursor(storedCursor)
+    } else if (current.pageIndex === 0 || isPageSizeChange) {
+      // First page or page size changed
+      setCursor(undefined)
+      pageCursorsRef.current.clear()
+    }
+
+    prevPaginationRef.current = current
+  }, [pagination])
 
   const handleFilterChange = (updates: Partial<LineItemFilters>) => {
     setDataFilters(prev => ({
@@ -161,11 +191,8 @@ function LineItems() {
       pageIndex: 0,
       pageSize: pagination.pageSize,
     })
-    setPaginationFilters({
-      page: 0,
-      pageSize: pagination.pageSize,
-      cursor: undefined,
-    })
+    setCursor(undefined)
+    pageCursorsRef.current.clear()
   }
 
   return (
@@ -196,37 +223,6 @@ function LineItems() {
             </SelectContent>
           </Select>
         </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Per page:</span>
-          <Select
-            value={pagination.pageSize.toString()}
-            onValueChange={(value) => {
-              const newPageSize = parseInt(value)
-              setPagination({
-                pageIndex: 0,
-                pageSize: newPageSize,
-              })
-              setPaginationFilters({
-                page: 0,
-                pageSize: newPageSize,
-                cursor: undefined,
-              })
-            }}
-          >
-            <SelectTrigger className="w-[100px]" size="sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">1</SelectItem>
-              <SelectItem value="5">5</SelectItem>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="20">20</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       <div className='flex-1 min-h-0'>
@@ -238,11 +234,10 @@ function LineItems() {
           pagination={pagination}
           setPagination={setPagination}
           totalCount={totalCount}
-          lastDoc={response?.lastDoc}
           isLoading={isLoading}
-          onPaginationChange={handlePaginationChange}
           enableGlobalSearch={true}
           globalSearchPlaceholder="Search line items... (searches current page)"
+          pageSizeOptions={[1, 5, 10, 20, 50, 100]}
         />
       </div>
     </div>

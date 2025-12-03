@@ -16,6 +16,7 @@ import { useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface DataTableProps<TData, TValue> {
   data: TData[]
@@ -29,12 +30,12 @@ interface DataTableProps<TData, TValue> {
   pagination: PaginationState
   setPagination: (value: PaginationState | ((prev: PaginationState) => PaginationState)) => void
   totalCount?: number
-  lastDoc?: unknown
   isLoading: boolean
-  onPaginationChange: (pageIndex: number, pageSize: number, cursor?: unknown) => void
   // Global search props
   enableGlobalSearch?: boolean
   globalSearchPlaceholder?: string
+  // Page size selector props
+  pageSizeOptions?: number[]
 }
 
 function DataTable<TData, TValue>({
@@ -48,52 +49,16 @@ function DataTable<TData, TValue>({
   pagination,
   setPagination,
   totalCount,
-  lastDoc,
   isLoading,
-  onPaginationChange,
   enableGlobalSearch = false,
   globalSearchPlaceholder = "Search all columns...",
+  pageSizeOptions = [10, 20, 50, 100],
 }: DataTableProps<TData, TValue>) {
-
-  // Store cursors for each page to enable forward/backward navigation
-  const [pageCursors, setPageCursors] = useState<Map<number, unknown>>(new Map())
 
   // Global search state
   const [globalFilter, setGlobalFilter] = useState('')
 
-
   const pageCount = totalCount ? Math.ceil(totalCount / pagination.pageSize) : -1;
-
-  // Handle pagination changes
-  const handlePaginationChange = (updater: PaginationState | ((old: PaginationState) => PaginationState)) => {
-    const newPagination = typeof updater === 'function' ? updater(pagination) : updater
-    const isNextPage = newPagination.pageIndex > pagination.pageIndex
-    const isPrevPage = newPagination.pageIndex < pagination.pageIndex
-
-    // Determine cursor based on navigation direction
-    let cursor: unknown = undefined
-
-    if (isNextPage && lastDoc) {
-      // Going forward - use the last document from current page
-      const newCursors = new Map(pageCursors)
-      newCursors.set(newPagination.pageIndex, lastDoc)
-      setPageCursors(newCursors)
-      cursor = lastDoc
-    } else if (isPrevPage) {
-      // Going backward - use the stored cursor for the target page
-      cursor = pageCursors.get(newPagination.pageIndex)
-    } else if (newPagination.pageIndex === 0) {
-      // First page - no cursor needed
-      cursor = undefined
-      setPageCursors(new Map()) // Reset cursors when going to first page
-    }
-
-    // Update pagination state
-    setPagination(newPagination)
-
-    // Notify parent component
-    onPaginationChange(newPagination.pageIndex, newPagination.pageSize, cursor)
-  }
 
 
 
@@ -105,7 +70,7 @@ function DataTable<TData, TValue>({
     getExpandedRowModel: getExpandedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: handlePaginationChange,
+    onPaginationChange: setPagination,
     onExpandedChange: setExpanded,
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: 'includesString',
@@ -205,19 +170,44 @@ function DataTable<TData, TValue>({
         </Table>
       </div>
       <div className="flex items-center justify-between px-2 py-4">
-        <div className="text-sm text-muted-foreground">
-          {totalCount !== undefined ? (
-            <>
-              Showing {pagination.pageIndex * pagination.pageSize + 1} to{' '}
-              {Math.min((pagination.pageIndex + 1) * pagination.pageSize, totalCount)} of{' '}
-              {totalCount} results
-            </>
-          ) : (
-            <>
-              {table.getFilteredSelectedRowModel().rows.length} of{' '}
-              {table.getFilteredRowModel().rows.length} row(s) selected
-            </>
-          )}
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-muted-foreground">
+            {totalCount !== undefined ? (
+              <>
+                Showing {pagination.pageIndex * pagination.pageSize + 1} to{' '}
+                {Math.min((pagination.pageIndex + 1) * pagination.pageSize, totalCount)} of{' '}
+                {totalCount} results
+              </>
+            ) : (
+              <>
+                {table.getFilteredSelectedRowModel().rows.length} of{' '}
+                {table.getFilteredRowModel().rows.length} row(s) selected
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Per page:</span>
+            <Select
+              value={pagination.pageSize.toString()}
+              onValueChange={(value) => {
+                setPagination({
+                  pageIndex: 0,
+                  pageSize: parseInt(value),
+                })
+              }}
+            >
+              <SelectTrigger className="w-[100px]" size="sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map((size) => (
+                  <SelectItem key={size} value={size.toString()}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="flex items-center gap-2">
 
