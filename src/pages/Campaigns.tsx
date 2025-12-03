@@ -1,4 +1,5 @@
 import { useCampaigns, useCampaignCount } from '@/hooks/useCampaigns'
+import { useCursorPagination } from '@/hooks/useCursorPagination'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { MultiSelect } from '@/components/ui/multi-select'
@@ -6,10 +7,10 @@ import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import DataTable from '@/components/DataTable'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import type { CampaignFilters } from '@/types/campaign'
-import type { RowSelectionState, PaginationState } from '@tanstack/react-table'
+import type { RowSelectionState } from '@tanstack/react-table'
 
 // Available campaign statuses
 const STATUS_OPTIONS = [
@@ -104,17 +105,10 @@ function Campaigns() {
   // Data filters (non-pagination)
   const [dataFilters, setDataFilters] = useState<Omit<CampaignFilters, 'page' | 'pageSize' | 'cursor'>>({})
 
-  // Pagination state (single source of truth)
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
+  // Cursor-based pagination hook
+  const { pagination, setPagination, cursor, setLastDoc, reset } = useCursorPagination({
+    initialPageSize: 10,
   })
-
-  // Cursor management for server-side pagination
-  const [cursor, setCursor] = useState<unknown>(undefined)
-  const pageCursorsRef = useRef<Map<number, unknown>>(new Map())
-  const lastDocRef = useRef<unknown>(undefined)
-  const prevPaginationRef = useRef<PaginationState>(pagination)
 
   // Fetch campaigns with pagination
   const { data: response, isLoading } = useCampaigns({
@@ -125,43 +119,17 @@ function Campaigns() {
   })
   const campaigns = response?.data ?? []
 
+  // Update lastDoc when response arrives
+  useEffect(() => {
+    if (response?.lastDoc) {
+      setLastDoc(response.lastDoc)
+    }
+  }, [response?.lastDoc, setLastDoc])
+
   // Fetch total count (only depends on data filters, not pagination)
   const { data: totalCount = 0 } = useCampaignCount(dataFilters)
 
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-
-  // Store lastDoc from response for cursor-based pagination
-  useEffect(() => {
-    if (response?.lastDoc) {
-      lastDocRef.current = response.lastDoc
-    }
-  }, [response?.lastDoc])
-
-  // Handle pagination changes and update cursor
-  useEffect(() => {
-    const prev = prevPaginationRef.current
-    const current = pagination
-
-    const isNextPage = current.pageIndex > prev.pageIndex
-    const isPrevPage = current.pageIndex < prev.pageIndex
-    const isPageSizeChange = current.pageSize !== prev.pageSize
-
-    if (isNextPage && lastDocRef.current) {
-      // Going forward - use lastDoc from previous page
-      pageCursorsRef.current.set(current.pageIndex, lastDocRef.current)
-      setCursor(lastDocRef.current)
-    } else if (isPrevPage) {
-      // Going backward - use stored cursor
-      const storedCursor = pageCursorsRef.current.get(current.pageIndex)
-      setCursor(storedCursor)
-    } else if (current.pageIndex === 0 || isPageSizeChange) {
-      // First page or page size changed
-      setCursor(undefined)
-      pageCursorsRef.current.clear()
-    }
-
-    prevPaginationRef.current = current
-  }, [pagination])
 
   const handleFilterChange = (updates: Partial<CampaignFilters>) => {
     setDataFilters(prev => ({
@@ -169,12 +137,7 @@ function Campaigns() {
       ...updates,
     }))
     // Reset pagination when filters change
-    setPagination({
-      pageIndex: 0,
-      pageSize: pagination.pageSize,
-    })
-    setCursor(undefined)
-    pageCursorsRef.current.clear()
+    reset()
   }
   return (
     <div className='container h-full flex flex-col'>

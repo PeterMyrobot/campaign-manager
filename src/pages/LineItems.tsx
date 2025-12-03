@@ -1,12 +1,13 @@
 import { useLineItems, useLineItemCount } from '@/hooks/useLineItems'
 import { useCampaignsContext } from '@/contexts/CampaignsContext'
+import { useCursorPagination } from '@/hooks/useCursorPagination'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import DataTable from '@/components/DataTable'
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import type { LineItemFilters, LineItem } from '@/types/lineItem'
-import type { RowSelectionState, PaginationState, Row } from '@tanstack/react-table'
+import type { RowSelectionState, Row } from '@tanstack/react-table'
 import type { Campaign } from '@/types/campaign'
 
 type EnrichedLineItem = LineItem & {
@@ -116,16 +117,10 @@ function LineItems() {
   // Data filters (non-pagination)
   const [dataFilters, setDataFilters] = useState<Omit<LineItemFilters, 'page' | 'pageSize' | 'cursor'>>({})
 
-  // Pagination state (single source of truth)
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
+  // Cursor-based pagination hook
+  const { pagination, setPagination, cursor, setLastDoc, reset } = useCursorPagination({
+    initialPageSize: 10,
   })
-
-  // Cursor management for server-side pagination
-  const [cursor, setCursor] = useState<unknown>(undefined)
-  const pageCursorsRef = useRef<Map<number, unknown>>(new Map())
-  const lastDocRef = useRef<unknown>(undefined)
 
   // Fetch line items with pagination
   const { data: response, isLoading } = useLineItems({
@@ -134,6 +129,13 @@ function LineItems() {
     pageSize: pagination.pageSize,
     cursor,
   })
+
+  // Update lastDoc when response arrives
+  useEffect(() => {
+    if (response?.lastDoc) {
+      setLastDoc(response.lastDoc)
+    }
+  }, [response?.lastDoc, setLastDoc])
 
   // Enrich line items with campaign names
   const enrichedLineItems = useMemo(
@@ -146,53 +148,13 @@ function LineItems() {
 
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
-  const prevPaginationRef = useRef<PaginationState>(pagination)
-
-  // Store lastDoc from response for cursor-based pagination
-  useEffect(() => {
-    if (response?.lastDoc) {
-      lastDocRef.current = response.lastDoc
-    }
-  }, [response?.lastDoc])
-
-  // Handle pagination changes and update cursor
-  useEffect(() => {
-    const prev = prevPaginationRef.current
-    const current = pagination
-
-    const isNextPage = current.pageIndex > prev.pageIndex
-    const isPrevPage = current.pageIndex < prev.pageIndex
-    const isPageSizeChange = current.pageSize !== prev.pageSize
-
-    if (isNextPage && lastDocRef.current) {
-      // Going forward - use lastDoc from previous page
-      pageCursorsRef.current.set(current.pageIndex, lastDocRef.current)
-      setCursor(lastDocRef.current)
-    } else if (isPrevPage) {
-      // Going backward - use stored cursor
-      const storedCursor = pageCursorsRef.current.get(current.pageIndex)
-      setCursor(storedCursor)
-    } else if (current.pageIndex === 0 || isPageSizeChange) {
-      // First page or page size changed
-      setCursor(undefined)
-      pageCursorsRef.current.clear()
-    }
-
-    prevPaginationRef.current = current
-  }, [pagination])
-
   const handleFilterChange = (updates: Partial<LineItemFilters>) => {
     setDataFilters(prev => ({
       ...prev,
       ...updates,
     }))
     // Reset pagination when filters change
-    setPagination({
-      pageIndex: 0,
-      pageSize: pagination.pageSize,
-    })
-    setCursor(undefined)
-    pageCursorsRef.current.clear()
+    reset()
   }
 
   return (
