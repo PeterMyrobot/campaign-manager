@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import LineItems from './pages/LineItems';
 import Invoices from './pages/Invoices';
 import InvoiceDetail from './pages/InvoiceDetail';
+import { Toaster } from './components/ui/sonner';
 
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
           <Route path='invoices/:id' element={<InvoiceDetail />} />
         </Route>
       </Routes>
+      <Toaster />
     </BrowserRouter>
   )
 }

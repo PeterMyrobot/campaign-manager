@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Check, X, Pencil } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface InvoiceLineItemsTableProps {
   invoiceId: string;
@@ -46,7 +47,9 @@ function InvoiceLineItemsTable({ invoiceId, invoiceStatus, onTotalUpdate }: Invo
     const newAdjustment = parseFloat(editValue);
 
     if (isNaN(newAdjustment)) {
-      alert('Please enter a valid number');
+      toast.error('Invalid number', {
+        description: 'Please enter a valid number for the adjustment',
+      });
       return;
     }
 
@@ -87,9 +90,16 @@ function InvoiceLineItemsTable({ invoiceId, invoiceStatus, onTotalUpdate }: Invo
 
       setEditingId(null);
       setEditValue('');
+
+      // Show success toast
+      toast.success('Adjustment updated', {
+        description: `Successfully updated adjustment to $${Math.abs(newAdjustment).toLocaleString()}`,
+      });
     } catch (error) {
       console.error('Failed to update adjustment:', error);
-      alert('Failed to update adjustment. Please try again.');
+      toast.error('Failed to update adjustment', {
+        description: 'Please try again or contact support if the problem persists',
+      });
     }
   };
 
