@@ -125,7 +125,7 @@ function LineItems() {
 
   // Cursor-based pagination hook
   const { pagination, setPagination, cursor, setLastDoc, reset } = useCursorPagination({
-    initialPageSize: 10,
+    initialPageSize: 100,
   })
 
   // Fetch line items with pagination

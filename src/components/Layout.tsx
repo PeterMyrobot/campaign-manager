@@ -73,11 +73,11 @@ export default function Layout() {
           </SidebarGroup>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset>
-        <header className="flex h-14 items-center gap-2 border-b px-4">
+      <SidebarInset className="flex flex-col h-screen">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger />
         </header>
-        <main className="flex-1 p-5 overflow-auto">
+        <main className="flex-1 p-5 overflow-hidden">
           <Outlet />
         </main>
       </SidebarInset>

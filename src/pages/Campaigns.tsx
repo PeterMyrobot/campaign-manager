@@ -91,6 +91,22 @@ const columns = [
     },
   },
   {
+    accessorKey: "lineItemIds",
+    header: "Line Items",
+    cell: ({ row }: { row: Row<Campaign> }) => {
+      const lineItemIds = row.getValue("lineItemIds") as string[];
+      return <div className="text-center">{lineItemIds?.length || 0}</div>;
+    },
+  },
+  {
+    accessorKey: "invoiceIds",
+    header: "Invoices",
+    cell: ({ row }: { row: Row<Campaign> }) => {
+      const invoiceIds = row.getValue("invoiceIds") as string[];
+      return <div className="text-center">{invoiceIds?.length || 0}</div>;
+    },
+  },
+  {
     accessorKey: "createdAt",
     header: "Created",
     cell: ({ row }: { row: Row<Campaign> }) => {
