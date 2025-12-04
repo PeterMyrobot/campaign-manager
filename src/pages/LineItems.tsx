@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import DataTable from '@/components/DataTable'
 import { useState, useMemo, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import type { LineItemFilters, LineItem } from '@/types/lineItem'
 import type { RowSelectionState, Row, Table } from '@tanstack/react-table'
 import type { Campaign } from '@/types/campaign'
@@ -113,9 +113,15 @@ const enrichLineItemData = (data: LineItem[], campaigns: Campaign[]): EnrichedLi
 
 function LineItems() {
   const { campaigns } = useCampaignsContext()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Get campaignId from URL params
+  const campaignIdFromUrl = searchParams.get('campaignId') || undefined
 
   // Data filters (non-pagination)
-  const [dataFilters, setDataFilters] = useState<Omit<LineItemFilters, 'page' | 'pageSize' | 'cursor'>>({})
+  const [dataFilters, setDataFilters] = useState<Omit<LineItemFilters, 'page' | 'pageSize' | 'cursor'>>({
+    campaignId: campaignIdFromUrl,
+  })
 
   // Cursor-based pagination hook
   const { pagination, setPagination, cursor, setLastDoc, reset } = useCursorPagination({
@@ -153,6 +159,17 @@ function LineItems() {
       ...prev,
       ...updates,
     }))
+
+    // Update URL params if campaignId changes
+    if ('campaignId' in updates) {
+      if (updates.campaignId) {
+        searchParams.set('campaignId', updates.campaignId)
+      } else {
+        searchParams.delete('campaignId')
+      }
+      setSearchParams(searchParams)
+    }
+
     // Reset pagination when filters change
     reset()
   }

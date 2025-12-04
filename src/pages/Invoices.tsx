@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import DataTable from '@/components/DataTable'
 import InvoiceLineItemsTable from '@/components/InvoiceLineItemsTable'
 import { useState, useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronRight, ChevronDown } from 'lucide-react'
 import type { Invoice, InvoiceFilters } from '@/types/invoice'
 import type { RowSelectionState, ExpandedState, Table, Row } from '@tanstack/react-table'
@@ -175,9 +175,15 @@ const enrichInvoiceData = (data: Invoice[], campaigns: Campaign[]): EnrichedInvo
 
 function Invoices() {
   const { campaigns } = useCampaignsContext()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Get campaignId from URL params
+  const campaignIdFromUrl = searchParams.get('campaignId') || undefined
 
   // Data filters (non-pagination)
-  const [dataFilters, setDataFilters] = useState<Omit<InvoiceFilters, 'page' | 'pageSize' | 'cursor'>>({})
+  const [dataFilters, setDataFilters] = useState<Omit<InvoiceFilters, 'page' | 'pageSize' | 'cursor'>>({
+    campaignId: campaignIdFromUrl,
+  })
 
   // Cursor-based pagination hook
   const { pagination, setPagination, cursor, setLastDoc, reset } = useCursorPagination({
@@ -216,6 +222,17 @@ function Invoices() {
       ...prev,
       ...updates,
     }))
+
+    // Update URL params if campaignId changes
+    if ('campaignId' in updates) {
+      if (updates.campaignId) {
+        searchParams.set('campaignId', updates.campaignId)
+      } else {
+        searchParams.delete('campaignId')
+      }
+      setSearchParams(searchParams)
+    }
+
     // Reset pagination when filters change
     reset()
   }
