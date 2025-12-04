@@ -1,4 +1,4 @@
-import { collection, getDocs, getDoc, doc, getCountFromServer, query, where, limit, startAfter, type DocumentData, type QueryDocumentSnapshot, type QueryConstraint } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, updateDoc, Timestamp, getCountFromServer, query, where, limit, startAfter, type DocumentData, type QueryDocumentSnapshot, type QueryConstraint } from "firebase/firestore";
 import { db } from "./firebase";
 import type { LineItem, LineItemFilters } from "@/types/lineItem";
 
@@ -101,5 +101,33 @@ export const lineItemService = {
       data: lineItems,
       lastDoc,
     };
+  },
+
+  // Update line item adjustments
+  async updateAdjustments(id: string, adjustments: number): Promise<void> {
+    const docRef = doc(db, COLLECTION_NAME, id);
+    await updateDoc(docRef, {
+      adjustments,
+      updatedAt: Timestamp.now(),
+    });
+  },
+
+  // Get multiple line items by IDs
+  async getByIds(ids: string[]): Promise<LineItem[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const lineItems: LineItem[] = [];
+
+    // Fetch each line item by ID
+    for (const id of ids) {
+      const lineItem = await this.getById(id);
+      if (lineItem) {
+        lineItems.push(lineItem);
+      }
+    }
+
+    return lineItems;
   },
 }

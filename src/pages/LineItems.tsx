@@ -7,7 +7,7 @@ import DataTable from '@/components/DataTable'
 import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import type { LineItemFilters, LineItem } from '@/types/lineItem'
-import type { RowSelectionState, Row } from '@tanstack/react-table'
+import type { RowSelectionState, Row, Table } from '@tanstack/react-table'
 import type { Campaign } from '@/types/campaign'
 
 type EnrichedLineItem = LineItem & {
@@ -17,7 +17,7 @@ type EnrichedLineItem = LineItem & {
 const columns = [
   {
     id: "select",
-    header: ({ table }: { table: any }) => (
+    header: ({ table }: { table: Table<EnrichedLineItem> }) => (
       <Checkbox
         checked={
           table.getIsAllPageRowsSelected() ||

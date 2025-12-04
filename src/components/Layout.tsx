@@ -31,7 +31,6 @@ export default function Layout() {
               Line Items
             </Link>
           </li>
-          { /*
           <li>
             <Link
               to="/invoices"
@@ -39,7 +38,7 @@ export default function Layout() {
             >
               Invoices
             </Link>
-          </li> */}
+          </li>
         </ul>
       </nav>
       <div className="flex-1 flex flex-col min-h-0">

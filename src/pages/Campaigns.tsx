@@ -1,7 +1,6 @@
 import { useCampaigns, useCampaignCount } from '@/hooks/useCampaigns'
 import { useCursorPagination } from '@/hooks/useCursorPagination'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -9,8 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import DataTable from '@/components/DataTable'
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import type { CampaignFilters } from '@/types/campaign'
-import type { RowSelectionState } from '@tanstack/react-table'
+import type { Campaign, CampaignFilters } from '@/types/campaign'
+import type { RowSelectionState, Table, Row } from '@tanstack/react-table'
 
 // Available campaign statuses
 const STATUS_OPTIONS = [
@@ -23,7 +22,7 @@ const STATUS_OPTIONS = [
 const columns = [
   {
     id: "select",
-    header: ({ table }) => (
+    header: ({ table }: { table: Table<Campaign> }) => (
       <Checkbox
         checked={
           table.getIsAllPageRowsSelected() ||
@@ -33,7 +32,7 @@ const columns = [
         aria-label="Select all"
       />
     ),
-    cell: ({ row }) => (
+    cell: ({ row }: { row: Row<Campaign> }) => (
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
@@ -45,7 +44,7 @@ const columns = [
   {
     accessorKey: "name",
     header: "Campaign Name",
-    cell: ({ row }) => {
+    cell: ({ row }: { row: Row<Campaign> }) => {
       const campaignId = row.original.id;
       return (
         <Link
@@ -60,7 +59,7 @@ const columns = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => {
+    cell: ({ row }: { row: Row<Campaign> }) => {
       const status = row.getValue("status") as string;
       const variantMap = {
         draft: "secondary" as const,
@@ -78,7 +77,7 @@ const columns = [
   {
     accessorKey: "startDate",
     header: "Start Date",
-    cell: ({ row }) => {
+    cell: ({ row }: { row: Row<Campaign> }) => {
       const date = row.getValue("startDate") as Date;
       return <div>{date?.toLocaleDateString()}</div>;
     },
@@ -86,7 +85,7 @@ const columns = [
   {
     accessorKey: "endDate",
     header: "End Date",
-    cell: ({ row }) => {
+    cell: ({ row }: { row: Row<Campaign> }) => {
       const date = row.getValue("endDate") as Date;
       return <div>{date?.toLocaleDateString()}</div>;
     },
@@ -94,7 +93,7 @@ const columns = [
   {
     accessorKey: "createdAt",
     header: "Created",
-    cell: ({ row }) => {
+    cell: ({ row }: { row: Row<Campaign> }) => {
       const date = row.getValue("createdAt") as Date;
       return <div>{date?.toLocaleDateString()}</div>;
     },

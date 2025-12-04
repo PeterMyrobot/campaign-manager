@@ -1,6 +1,6 @@
 import { lineItemService, type PaginatedResponse } from "@/services/firebase/lineItemService";
 import type { LineItem, LineItemFilters } from "@/types/lineItem";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function useLineItems(filters?: LineItemFilters) {
   return useQuery<PaginatedResponse<LineItem>>({
@@ -23,5 +23,19 @@ export function useLineItemCount(filters?: Omit<LineItemFilters, 'page' | 'pageS
   return useQuery<number>({
     queryKey: ['lineItems', 'count', filters],
     queryFn: () => lineItemService.getTotalCount(filters),
+  });
+}
+
+// Hook to update line item adjustments
+export function useUpdateLineItemAdjustments() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, adjustments }: { id: string; adjustments: number }) =>
+      lineItemService.updateAdjustments(id, adjustments),
+    onSuccess: () => {
+      // Invalidate and refetch line items queries
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+    },
   });
 }
