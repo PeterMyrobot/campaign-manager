@@ -3,14 +3,23 @@ import { useCampaignsContext } from '@/contexts/CampaignsContext'
 import { useCursorPagination } from '@/hooks/useCursorPagination'
 import { Checkbox } from '@/components/ui/checkbox'
 import { MultiSelect } from '@/components/ui/multi-select'
+import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { FilterBadge } from '@/components/FilterBadge'
 import DataTable from '@/components/DataTable'
 import InvoiceLineItemsTable from '@/components/InvoiceLineItemsTable'
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ChevronRight, ChevronDown } from 'lucide-react'
+import { ChevronRight, ChevronDown, Filter } from 'lucide-react'
 import type { Invoice, InvoiceFilters } from '@/types/invoice'
 import type { RowSelectionState, ExpandedState, Table, Row } from '@tanstack/react-table'
 import type { Campaign } from '@/types/campaign'
@@ -237,49 +246,265 @@ function Invoices() {
     reset()
   }
 
+  // Calculate active filter count
+  const activeFilterCount =
+    (dataFilters.statuses?.length || 0) +
+    (dataFilters.campaignId ? 1 : 0) +
+    (dataFilters.issueDateRange ? 1 : 0) +
+    (dataFilters.dueDateRange ? 1 : 0) +
+    (dataFilters.paidDateRange ? 1 : 0) +
+    (dataFilters.createdDateRange ? 1 : 0)
+
+  // Get active date filter info
+  const getDateFilterInfo = () => {
+    if (dataFilters.issueDateRange) return { type: 'issue', label: 'Issue Date', range: dataFilters.issueDateRange }
+    if (dataFilters.dueDateRange) return { type: 'due', label: 'Due Date', range: dataFilters.dueDateRange }
+    if (dataFilters.paidDateRange) return { type: 'paid', label: 'Paid Date', range: dataFilters.paidDateRange }
+    if (dataFilters.createdDateRange) return { type: 'created', label: 'Created Date', range: dataFilters.createdDateRange }
+    return null
+  }
+
+  const dateFilterInfo = getDateFilterInfo()
+
+  const formatDateRange = (range: { from?: Date; to?: Date }) => {
+    if (range.from && range.to) {
+      return `${range.from.toLocaleDateString()} - ${range.to.toLocaleDateString()}`
+    } else if (range.from) {
+      return `From ${range.from.toLocaleDateString()}`
+    } else if (range.to) {
+      return `To ${range.to.toLocaleDateString()}`
+    }
+    return ''
+  }
+
   return (
     <div className='container h-full flex flex-col'>
-      <h1 className="text-3xl font-bold mb-6">Invoices</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Invoices</h1>
 
-      <div className="flex items-center gap-4 flex-wrap mb-6">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Status:</span>
-          <MultiSelect
-            options={STATUS_OPTIONS}
-            selected={dataFilters.statuses ?? []}
-            onChange={(values) =>
-              handleFilterChange({
-                statuses: values.length > 0 ? values : undefined,
-              })
-            }
-            placeholder="All statuses"
-            className="w-[200px]"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Campaign:</span>
-          <Select
-            value={dataFilters.campaignId || "all"}
-            onValueChange={(value) => {
-              handleFilterChange({
-                campaignId: value === "all" ? undefined : value,
-              })
-            }}
-          >
-            <SelectTrigger className="w-[200px]" size="sm">
-              <SelectValue placeholder="All campaigns" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All campaigns</SelectItem>
-              {campaigns.map((campaign) => (
-                <SelectItem key={campaign.id} value={campaign.id}>
-                  {campaign.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Filter className="mr-2 h-4 w-4" />
+              Filters
+              {activeFilterCount > 0 && (
+                <Badge variant="default" className="ml-2 h-5 px-1 min-w-5 flex items-center justify-center">
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" align="end">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h4 className="font-medium leading-none">Filters</h4>
+                <p className="text-sm text-muted-foreground">
+                  Refine your invoice search
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {/* Status Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none">Status</label>
+                  <MultiSelect
+                    options={STATUS_OPTIONS}
+                    selected={dataFilters.statuses ?? []}
+                    onChange={(values) =>
+                      handleFilterChange({
+                        statuses: values.length > 0 ? values : undefined,
+                      })
+                    }
+                    placeholder="All statuses"
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Campaign Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none">Campaign</label>
+                  <Select
+                    value={dataFilters.campaignId || "all"}
+                    onValueChange={(value) => {
+                      handleFilterChange({
+                        campaignId: value === "all" ? undefined : value,
+                      })
+                    }}
+                  >
+                    <SelectTrigger size="sm" className="w-full">
+                      <SelectValue placeholder="All campaigns">
+                        {dataFilters.campaignId
+                          ? (() => {
+                              const campaign = campaigns.find(c => c.id === dataFilters.campaignId)
+                              const name = campaign?.name || ''
+                              return name.length > 25 ? `${name.slice(0, 25)}...` : name
+                            })()
+                          : "All campaigns"
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-w-[280px]">
+                      <SelectItem value="all">All campaigns</SelectItem>
+                      {campaigns.map((campaign) => {
+                        const isLong = campaign.name.length > 35
+                        const displayName = isLong ? `${campaign.name.slice(0, 35)}...` : campaign.name
+
+                        return (
+                          <TooltipProvider key={campaign.id} delayDuration={300}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <SelectItem value={campaign.id} className="cursor-pointer">
+                                  <span className="block truncate max-w-[240px]">{displayName}</span>
+                                </SelectItem>
+                              </TooltipTrigger>
+                              {isLong && (
+                                <TooltipContent side="left" className="max-w-xs">
+                                  <p className="break-words">{campaign.name}</p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Date Type Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Date Type</label>
+                  <Select
+                    value={
+                      dataFilters.issueDateRange ? 'issue' :
+                        dataFilters.dueDateRange ? 'due' :
+                          dataFilters.paidDateRange ? 'paid' :
+                            dataFilters.createdDateRange ? 'created' :
+                              'none'
+                    }
+                    onValueChange={(value) => {
+                      if (value === 'none') {
+                        handleFilterChange({
+                          issueDateRange: undefined,
+                          dueDateRange: undefined,
+                          paidDateRange: undefined,
+                          createdDateRange: undefined,
+                        })
+                      } else if (value === 'issue') {
+                        handleFilterChange({
+                          issueDateRange: {},
+                          dueDateRange: undefined,
+                          paidDateRange: undefined,
+                          createdDateRange: undefined,
+                        })
+                      } else if (value === 'due') {
+                        handleFilterChange({
+                          issueDateRange: undefined,
+                          dueDateRange: {},
+                          paidDateRange: undefined,
+                          createdDateRange: undefined,
+                        })
+                      } else if (value === 'paid') {
+                        handleFilterChange({
+                          issueDateRange: undefined,
+                          dueDateRange: undefined,
+                          paidDateRange: {},
+                          createdDateRange: undefined,
+                        })
+                      } else if (value === 'created') {
+                        handleFilterChange({
+                          issueDateRange: undefined,
+                          dueDateRange: undefined,
+                          paidDateRange: undefined,
+                          createdDateRange: {},
+                        })
+                      }
+                    }}
+                  >
+                    <SelectTrigger size="sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No date filter</SelectItem>
+                      <SelectItem value="issue">Issue Date</SelectItem>
+                      <SelectItem value="due">Due Date</SelectItem>
+                      <SelectItem value="paid">Paid Date</SelectItem>
+                      <SelectItem value="created">Created Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Date Range Filter */}
+                {(dataFilters.issueDateRange || dataFilters.dueDateRange || dataFilters.paidDateRange || dataFilters.createdDateRange) && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Date Range</label>
+                    <DateRangeFilter
+                      value={
+                        dataFilters.issueDateRange ||
+                        dataFilters.dueDateRange ||
+                        dataFilters.paidDateRange ||
+                        dataFilters.createdDateRange
+                      }
+                      onChange={(range) => {
+                        if (dataFilters.issueDateRange !== undefined) {
+                          handleFilterChange({ issueDateRange: range })
+                        } else if (dataFilters.dueDateRange !== undefined) {
+                          handleFilterChange({ dueDateRange: range })
+                        } else if (dataFilters.paidDateRange !== undefined) {
+                          handleFilterChange({ paidDateRange: range })
+                        } else if (dataFilters.createdDateRange !== undefined) {
+                          handleFilterChange({ createdDateRange: range })
+                        }
+                      }}
+                      placeholder="Select date range"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
+
+      {/* Active Filters Display */}
+      {activeFilterCount > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {dataFilters.statuses?.map((status) => (
+            <FilterBadge
+              key={status}
+              label="Status"
+              value={STATUS_OPTIONS.find(s => s.value === status)?.label || status}
+              onRemove={() => {
+                const newStatuses = dataFilters.statuses?.filter(s => s !== status)
+                handleFilterChange({ statuses: newStatuses?.length ? newStatuses : undefined })
+              }}
+            />
+          ))}
+          {dataFilters.campaignId && (
+            <FilterBadge
+              label="Campaign"
+              value={campaigns.find(c => c.id === dataFilters.campaignId)?.name || dataFilters.campaignId}
+              onRemove={() => handleFilterChange({ campaignId: undefined })}
+            />
+          )}
+          {dateFilterInfo && (
+            <FilterBadge
+              label={dateFilterInfo.label}
+              value={formatDateRange(dateFilterInfo.range)}
+              onRemove={() => {
+                if (dataFilters.issueDateRange) {
+                  handleFilterChange({ issueDateRange: undefined })
+                } else if (dataFilters.dueDateRange) {
+                  handleFilterChange({ dueDateRange: undefined })
+                } else if (dataFilters.paidDateRange) {
+                  handleFilterChange({ paidDateRange: undefined })
+                } else if (dataFilters.createdDateRange) {
+                  handleFilterChange({ createdDateRange: undefined })
+                }
+              }}
+            />
+          )}
+        </div>
+      )}
 
       <div className='flex-1 min-h-0'>
         <DataTable

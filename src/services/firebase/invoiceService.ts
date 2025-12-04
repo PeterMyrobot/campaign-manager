@@ -1,4 +1,4 @@
-import { collection, getDocs, getDoc, doc, updateDoc, Timestamp, getCountFromServer, query, where, limit, startAfter, type DocumentData, type QueryDocumentSnapshot, type QueryConstraint } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, updateDoc, Timestamp, getCountFromServer, query, where, orderBy, limit, startAfter, type DocumentData, type QueryDocumentSnapshot, type QueryConstraint } from "firebase/firestore";
 import { db } from "./firebase";
 import type { Invoice, InvoiceFilters } from "@/types/invoice";
 
@@ -60,6 +60,46 @@ export const invoiceService = {
       constraints.push(where('status', 'in', filters.statuses));
     }
 
+    // Date range filters - only ONE can be applied due to Firebase limitations
+    // Priority: issueDateRange > dueDateRange > paidDateRange > createdDateRange
+    if (filters?.issueDateRange?.from || filters?.issueDateRange?.to) {
+      if (filters.issueDateRange.from) {
+        constraints.push(where('issueDate', '>=', Timestamp.fromDate(filters.issueDateRange.from)));
+      }
+      if (filters.issueDateRange.to) {
+        const endOfDay = new Date(filters.issueDateRange.to);
+        endOfDay.setHours(23, 59, 59, 999);
+        constraints.push(where('issueDate', '<=', Timestamp.fromDate(endOfDay)));
+      }
+    } else if (filters?.dueDateRange?.from || filters?.dueDateRange?.to) {
+      if (filters.dueDateRange.from) {
+        constraints.push(where('dueDate', '>=', Timestamp.fromDate(filters.dueDateRange.from)));
+      }
+      if (filters.dueDateRange.to) {
+        const endOfDay = new Date(filters.dueDateRange.to);
+        endOfDay.setHours(23, 59, 59, 999);
+        constraints.push(where('dueDate', '<=', Timestamp.fromDate(endOfDay)));
+      }
+    } else if (filters?.paidDateRange?.from || filters?.paidDateRange?.to) {
+      if (filters.paidDateRange.from) {
+        constraints.push(where('paidDate', '>=', Timestamp.fromDate(filters.paidDateRange.from)));
+      }
+      if (filters.paidDateRange.to) {
+        const endOfDay = new Date(filters.paidDateRange.to);
+        endOfDay.setHours(23, 59, 59, 999);
+        constraints.push(where('paidDate', '<=', Timestamp.fromDate(endOfDay)));
+      }
+    } else if (filters?.createdDateRange?.from || filters?.createdDateRange?.to) {
+      if (filters.createdDateRange.from) {
+        constraints.push(where('createdAt', '>=', Timestamp.fromDate(filters.createdDateRange.from)));
+      }
+      if (filters.createdDateRange.to) {
+        const endOfDay = new Date(filters.createdDateRange.to);
+        endOfDay.setHours(23, 59, 59, 999);
+        constraints.push(where('createdAt', '<=', Timestamp.fromDate(endOfDay)));
+      }
+    }
+
     const q = query(collection(db, COLLECTION_NAME), ...constraints);
     const snapshot = await getCountFromServer(q);
 
@@ -80,6 +120,57 @@ export const invoiceService = {
 
     if (filters.statuses && filters.statuses.length > 0) {
       constraints.push(where('status', 'in', filters.statuses));
+    }
+
+    // Date range filters - only ONE can be applied due to Firebase limitations
+    // Track which field is used for ordering
+    let rangeFieldUsed: 'issueDate' | 'dueDate' | 'paidDate' | 'createdAt' | null = null;
+
+    if (filters.issueDateRange?.from || filters.issueDateRange?.to) {
+      rangeFieldUsed = 'issueDate';
+      if (filters.issueDateRange.from) {
+        constraints.push(where('issueDate', '>=', Timestamp.fromDate(filters.issueDateRange.from)));
+      }
+      if (filters.issueDateRange.to) {
+        const endOfDay = new Date(filters.issueDateRange.to);
+        endOfDay.setHours(23, 59, 59, 999);
+        constraints.push(where('issueDate', '<=', Timestamp.fromDate(endOfDay)));
+      }
+    } else if (filters.dueDateRange?.from || filters.dueDateRange?.to) {
+      rangeFieldUsed = 'dueDate';
+      if (filters.dueDateRange.from) {
+        constraints.push(where('dueDate', '>=', Timestamp.fromDate(filters.dueDateRange.from)));
+      }
+      if (filters.dueDateRange.to) {
+        const endOfDay = new Date(filters.dueDateRange.to);
+        endOfDay.setHours(23, 59, 59, 999);
+        constraints.push(where('dueDate', '<=', Timestamp.fromDate(endOfDay)));
+      }
+    } else if (filters.paidDateRange?.from || filters.paidDateRange?.to) {
+      rangeFieldUsed = 'paidDate';
+      if (filters.paidDateRange.from) {
+        constraints.push(where('paidDate', '>=', Timestamp.fromDate(filters.paidDateRange.from)));
+      }
+      if (filters.paidDateRange.to) {
+        const endOfDay = new Date(filters.paidDateRange.to);
+        endOfDay.setHours(23, 59, 59, 999);
+        constraints.push(where('paidDate', '<=', Timestamp.fromDate(endOfDay)));
+      }
+    } else if (filters.createdDateRange?.from || filters.createdDateRange?.to) {
+      rangeFieldUsed = 'createdAt';
+      if (filters.createdDateRange.from) {
+        constraints.push(where('createdAt', '>=', Timestamp.fromDate(filters.createdDateRange.from)));
+      }
+      if (filters.createdDateRange.to) {
+        const endOfDay = new Date(filters.createdDateRange.to);
+        endOfDay.setHours(23, 59, 59, 999);
+        constraints.push(where('createdAt', '<=', Timestamp.fromDate(endOfDay)));
+      }
+    }
+
+    // Must order by the range field when using date range filters
+    if (rangeFieldUsed) {
+      constraints.push(orderBy(rangeFieldUsed, 'desc'));
     }
 
     // Pagination

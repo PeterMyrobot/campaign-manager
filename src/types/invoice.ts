@@ -19,10 +19,19 @@ export interface Invoice {
   updatedAt?: Date;
 }
 
+export interface DateRange {
+  from?: Date;
+  to?: Date;
+}
+
 export interface InvoiceFilters {
   campaignId?: string;
   status?: string;
   statuses?: string[];
+  issueDateRange?: DateRange;
+  dueDateRange?: DateRange;
+  paidDateRange?: DateRange;
+  createdDateRange?: DateRange;
   page?: number;
   pageSize?: number;
   cursor?: unknown;

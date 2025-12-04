@@ -3,9 +3,21 @@ import { useCampaignsContext } from '@/contexts/CampaignsContext'
 import { useCursorPagination } from '@/hooks/useCursorPagination'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DateRangeFilter } from '@/components/ui/date-range-filter'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { FilterBadge } from '@/components/FilterBadge'
 import DataTable from '@/components/DataTable'
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Filter } from 'lucide-react'
 import type { LineItemFilters, LineItem } from '@/types/lineItem'
 import type { RowSelectionState, Row, Table } from '@tanstack/react-table'
 import type { Campaign } from '@/types/campaign'
@@ -174,35 +186,135 @@ function LineItems() {
     reset()
   }
 
+  // Calculate active filter count
+  const activeFilterCount =
+    (dataFilters.campaignId ? 1 : 0) +
+    (dataFilters.createdDateRange ? 1 : 0)
+
+  const formatDateRange = (range: { from?: Date; to?: Date }) => {
+    if (range.from && range.to) {
+      return `${range.from.toLocaleDateString()} - ${range.to.toLocaleDateString()}`
+    } else if (range.from) {
+      return `From ${range.from.toLocaleDateString()}`
+    } else if (range.to) {
+      return `To ${range.to.toLocaleDateString()}`
+    }
+    return ''
+  }
+
   return (
     <div className='container h-full flex flex-col'>
-      <h1 className="text-3xl font-bold mb-6">Line Items</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Line Items</h1>
 
-      <div className="flex items-center gap-4 flex-wrap mb-6">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Campaign:</span>
-          <Select
-            value={dataFilters.campaignId || "all"}
-            onValueChange={(value) => {
-              handleFilterChange({
-                campaignId: value === "all" ? undefined : value,
-              })
-            }}
-          >
-            <SelectTrigger className="w-[200px]" size="sm">
-              <SelectValue placeholder="All campaigns" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All campaigns</SelectItem>
-              {campaigns.map((campaign) => (
-                <SelectItem key={campaign.id} value={campaign.id}>
-                  {campaign.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Filter className="mr-2 h-4 w-4" />
+              Filters
+              {activeFilterCount > 0 && (
+                <Badge variant="default" className="ml-2 h-5 px-1 min-w-5 flex items-center justify-center">
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" align="end">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h4 className="font-medium leading-none">Filters</h4>
+                <p className="text-sm text-muted-foreground">
+                  Refine your line item search
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {/* Campaign Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none">Campaign</label>
+                  <Select
+                    value={dataFilters.campaignId || "all"}
+                    onValueChange={(value) => {
+                      handleFilterChange({
+                        campaignId: value === "all" ? undefined : value,
+                      })
+                    }}
+                  >
+                    <SelectTrigger size="sm" className="w-full">
+                      <SelectValue placeholder="All campaigns">
+                        {dataFilters.campaignId
+                          ? (() => {
+                              const campaign = campaigns.find(c => c.id === dataFilters.campaignId)
+                              const name = campaign?.name || ''
+                              return name.length > 25 ? `${name.slice(0, 25)}...` : name
+                            })()
+                          : "All campaigns"
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-w-[280px]">
+                      <SelectItem value="all">All campaigns</SelectItem>
+                      {campaigns.map((campaign) => {
+                        const isLong = campaign.name.length > 35
+                        const displayName = isLong ? `${campaign.name.slice(0, 35)}...` : campaign.name
+
+                        return (
+                          <TooltipProvider key={campaign.id} delayDuration={300}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <SelectItem value={campaign.id} className="cursor-pointer">
+                                  <span className="block truncate max-w-[240px]">{displayName}</span>
+                                </SelectItem>
+                              </TooltipTrigger>
+                              {isLong && (
+                                <TooltipContent side="left" className="max-w-xs">
+                                  <p className="break-words">{campaign.name}</p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Created Date Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Created Date</label>
+                  <DateRangeFilter
+                    value={dataFilters.createdDateRange}
+                    onChange={(range) => {
+                      handleFilterChange({ createdDateRange: range })
+                    }}
+                    placeholder="Select date range"
+                  />
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
+
+      {/* Active Filters Display */}
+      {activeFilterCount > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {dataFilters.campaignId && (
+            <FilterBadge
+              label="Campaign"
+              value={campaigns.find(c => c.id === dataFilters.campaignId)?.name || dataFilters.campaignId}
+              onRemove={() => handleFilterChange({ campaignId: undefined })}
+            />
+          )}
+          {dataFilters.createdDateRange && (
+            <FilterBadge
+              label="Created Date"
+              value={formatDateRange(dataFilters.createdDateRange)}
+              onRemove={() => handleFilterChange({ createdDateRange: undefined })}
+            />
+          )}
+        </div>
+      )}
 
       <div className='flex-1 min-h-0'>
         <DataTable

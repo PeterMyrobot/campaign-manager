@@ -1,4 +1,4 @@
-import { collection, getDocs, getDoc, doc, updateDoc, Timestamp, getCountFromServer, query, where, limit, startAfter, type DocumentData, type QueryDocumentSnapshot, type QueryConstraint } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, updateDoc, Timestamp, getCountFromServer, query, where, orderBy, limit, startAfter, type DocumentData, type QueryDocumentSnapshot, type QueryConstraint } from "firebase/firestore";
 import { db } from "./firebase";
 import type { LineItem, LineItemFilters } from "@/types/lineItem";
 
@@ -48,6 +48,18 @@ export const lineItemService = {
       constraints.push(where('invoiceId', '==', filters.invoiceId));
     }
 
+    // Date range filter for createdAt
+    if (filters?.createdDateRange?.from || filters?.createdDateRange?.to) {
+      if (filters.createdDateRange.from) {
+        constraints.push(where('createdAt', '>=', Timestamp.fromDate(filters.createdDateRange.from)));
+      }
+      if (filters.createdDateRange.to) {
+        const endOfDay = new Date(filters.createdDateRange.to);
+        endOfDay.setHours(23, 59, 59, 999);
+        constraints.push(where('createdAt', '<=', Timestamp.fromDate(endOfDay)));
+      }
+    }
+
     const q = query(collection(db, COLLECTION_NAME), ...constraints);
     const snapshot = await getCountFromServer(q);
 
@@ -64,6 +76,25 @@ export const lineItemService = {
 
     if (filters.invoiceId) {
       constraints.push(where('invoiceId', '==', filters.invoiceId));
+    }
+
+    // Date range filter for createdAt
+    let rangeFieldUsed: 'createdAt' | null = null;
+    if (filters.createdDateRange?.from || filters.createdDateRange?.to) {
+      rangeFieldUsed = 'createdAt';
+      if (filters.createdDateRange.from) {
+        constraints.push(where('createdAt', '>=', Timestamp.fromDate(filters.createdDateRange.from)));
+      }
+      if (filters.createdDateRange.to) {
+        const endOfDay = new Date(filters.createdDateRange.to);
+        endOfDay.setHours(23, 59, 59, 999);
+        constraints.push(where('createdAt', '<=', Timestamp.fromDate(endOfDay)));
+      }
+    }
+
+    // Must order by the range field when using date range filters
+    if (rangeFieldUsed) {
+      constraints.push(orderBy(rangeFieldUsed, 'desc'));
     }
 
     // Pagination
