@@ -129,7 +129,7 @@ const columns = [
   },
   {
     accessorKey: "totalAmount",
-    header: "Total Amount",
+    header: () => <div className="text-right">Total Amount</div>,
     cell: ({ row }: { row: Row<EnrichedInvoice> }) => {
       const amount = row.getValue("totalAmount") as number;
       const currency = row.original.currency;

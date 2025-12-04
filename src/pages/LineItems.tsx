@@ -63,7 +63,7 @@ const columns = [
   },
   {
     accessorKey: "bookedAmount",
-    header: "Booked Amount",
+    header: () => <div className="text-right">Booked Amount</div>,
     cell: ({ row }: { row: Row<EnrichedLineItem> }) => {
       const amount = row.getValue("bookedAmount") as number;
       return <div className="text-right">${amount.toLocaleString()}</div>;
@@ -71,7 +71,7 @@ const columns = [
   },
   {
     accessorKey: "actualAmount",
-    header: "Actual Amount",
+    header: () => <div className="text-right">Actual Amount</div>,
     cell: ({ row }: { row: Row<EnrichedLineItem> }) => {
       const amount = row.getValue("actualAmount") as number;
       return <div className="text-right">${amount.toLocaleString()}</div>;
@@ -79,7 +79,7 @@ const columns = [
   },
   {
     accessorKey: "adjustments",
-    header: "Adjustments",
+    header: () => <div className="text-right">Adjustments</div>,
     cell: ({ row }: { row: Row<EnrichedLineItem> }) => {
       const amount = row.getValue("adjustments") as number;
       const isNegative = amount < 0;
