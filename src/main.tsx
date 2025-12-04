@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
 import { CampaignsProvider } from './contexts/CampaignsContext'
+import { InvoicesProvider } from './contexts/InvoicesContext'
 
   const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,7 +20,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <CampaignsProvider>
-        <App />
+        <InvoicesProvider>
+          <App />
+        </InvoicesProvider>
       </CampaignsProvider>
     </QueryClientProvider>
   </StrictMode>,

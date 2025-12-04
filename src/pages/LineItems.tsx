@@ -1,5 +1,6 @@
 import { useLineItems, useLineItemCount } from '@/hooks/useLineItems'
 import { useCampaignsContext } from '@/contexts/CampaignsContext'
+import { useInvoicesContext } from '@/contexts/InvoicesContext'
 import { useCursorPagination } from '@/hooks/useCursorPagination'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -14,16 +15,22 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { FilterBadge } from '@/components/FilterBadge'
+import { BulkActionToolbar } from '@/components/BulkActionToolbar'
+import { CreateInvoiceDialog } from '@/components/CreateInvoiceDialog'
 import DataTable from '@/components/DataTable'
+import { exportToCsv } from '@/lib/exportToCsv'
+import { useCreateInvoiceFromLineItems } from '@/hooks/useInvoices'
 import { useState, useMemo, useEffect } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { Filter } from 'lucide-react'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { Filter, Download, FileText } from 'lucide-react'
+import { toast } from 'sonner'
 import type { LineItemFilters, LineItem } from '@/types/lineItem'
 import type { RowSelectionState, Row, Table } from '@tanstack/react-table'
 import type { Campaign } from '@/types/campaign'
 
 type EnrichedLineItem = LineItem & {
   campaignName?: string;
+  invoiceNumber?: string;
 }
 
 const columns = [
@@ -103,6 +110,27 @@ const columns = [
     },
   },
   {
+    accessorKey: "invoiceId",
+    header: "Invoice",
+    cell: ({ row }: { row: Row<EnrichedLineItem> }) => {
+      const invoiceId = row.getValue("invoiceId") as string | undefined;
+      const invoiceNumber = row.original.invoiceNumber;
+
+      if (!invoiceId) {
+        return <div className="text-muted-foreground text-sm">Not invoiced</div>;
+      }
+
+      return (
+        <Link
+          to={`/invoices/${invoiceId}`}
+          className="text-blue-600 hover:text-blue-800 hover:underline"
+        >
+          {invoiceNumber || invoiceId}
+        </Link>
+      );
+    },
+  },
+  {
     accessorKey: "createdAt",
     header: "Created",
     cell: ({ row }: { row: Row<EnrichedLineItem> }) => {
@@ -112,33 +140,47 @@ const columns = [
   },
 ]
 
-const enrichLineItemData = (data: LineItem[], campaigns: Campaign[]): EnrichedLineItem[] => {
-  // Create a map for O(1) campaign lookup
+const enrichLineItemData = (
+  data: LineItem[],
+  campaigns: Campaign[],
+  invoices: Array<{ id: string; invoiceNumber: string }>
+): EnrichedLineItem[] => {
+  // Create maps for O(1) lookup
   const campaignMap = new Map(campaigns.map(c => [c.id, c.name]))
+  const invoiceMap = new Map(invoices.map(inv => [inv.id, inv.invoiceNumber]))
 
-  // Enrich each line item with campaign name
+  // Enrich each line item with campaign name and invoice number
   return data.map(lineItem => ({
     ...lineItem,
     campaignName: campaignMap.get(lineItem.campaignId),
+    invoiceNumber: lineItem.invoiceId ? invoiceMap.get(lineItem.invoiceId) : undefined,
   }))
 }
 
 function LineItems() {
+  const navigate = useNavigate()
   const { campaigns } = useCampaignsContext()
+  const { invoices } = useInvoicesContext()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
 
-  // Get campaignId from URL params
+  // Get filters from URL params
   const campaignIdFromUrl = searchParams.get('campaignId') || undefined
+  const invoiceIdFromUrl = searchParams.get('invoiceId') || undefined
 
   // Data filters (non-pagination)
   const [dataFilters, setDataFilters] = useState<Omit<LineItemFilters, 'page' | 'pageSize' | 'cursor'>>({
     campaignId: campaignIdFromUrl,
+    invoiceId: invoiceIdFromUrl,
   })
 
   // Cursor-based pagination hook
   const { pagination, setPagination, cursor, setLastDoc, reset } = useCursorPagination({
     initialPageSize: 100,
   })
+
+  // Create invoice mutation
+  const createInvoice = useCreateInvoiceFromLineItems()
 
   // Fetch line items with pagination
   const { data: response, isLoading } = useLineItems({
@@ -155,11 +197,14 @@ function LineItems() {
     }
   }, [response?.lastDoc, setLastDoc])
 
-  // Enrich line items with campaign names
-  const enrichedLineItems = useMemo(
-    () => enrichLineItemData(response?.data ?? [], campaigns),
-    [response?.data, campaigns]
-  )
+  // Enrich line items with campaign names and invoice numbers
+  const enrichedLineItems = useMemo(() => {
+    const invoiceData = invoices.map(inv => ({
+      id: inv.id,
+      invoiceNumber: inv.invoiceNumber,
+    }))
+    return enrichLineItemData(response?.data ?? [], campaigns, invoiceData)
+  }, [response?.data, campaigns, invoices])
 
   // Fetch total count (only depends on data filters, not pagination)
   const { data: totalCount = 0 } = useLineItemCount(dataFilters)
@@ -172,15 +217,22 @@ function LineItems() {
       ...updates,
     }))
 
-    // Update URL params if campaignId changes
+    // Update URL params
     if ('campaignId' in updates) {
       if (updates.campaignId) {
         searchParams.set('campaignId', updates.campaignId)
       } else {
         searchParams.delete('campaignId')
       }
-      setSearchParams(searchParams)
     }
+    if ('invoiceId' in updates) {
+      if (updates.invoiceId) {
+        searchParams.set('invoiceId', updates.invoiceId)
+      } else {
+        searchParams.delete('invoiceId')
+      }
+    }
+    setSearchParams(searchParams)
 
     // Reset pagination when filters change
     reset()
@@ -189,6 +241,7 @@ function LineItems() {
   // Calculate active filter count
   const activeFilterCount =
     (dataFilters.campaignId ? 1 : 0) +
+    (dataFilters.invoiceId ? 1 : 0) +
     (dataFilters.createdDateRange ? 1 : 0)
 
   const formatDateRange = (range: { from?: Date; to?: Date }) => {
@@ -201,6 +254,119 @@ function LineItems() {
     }
     return ''
   }
+
+  // Get selected line items
+  const selectedLineItems = useMemo(() => {
+    return Object.keys(rowSelection)
+      .filter(key => rowSelection[key])
+      .map(index => enrichedLineItems[parseInt(index)])
+      .filter(Boolean);
+  }, [rowSelection, enrichedLineItems]);
+
+  // Bulk action handlers
+  const handleBulkExport = () => {
+    if (selectedLineItems.length === 0) return;
+
+    exportToCsv(
+      selectedLineItems,
+      `line-items-${new Date().toISOString().split('T')[0]}`,
+      [
+        { key: 'name', header: 'Line Item Name' },
+        { key: 'campaignName', header: 'Campaign' },
+        { key: 'bookedAmount', header: 'Booked Amount' },
+        { key: 'actualAmount', header: 'Actual Amount' },
+        { key: 'adjustments', header: 'Adjustments' },
+        { key: 'createdAt', header: 'Created At' },
+      ]
+    );
+
+    toast.success('Export successful', {
+      description: `Exported ${selectedLineItems.length} line item${selectedLineItems.length > 1 ? 's' : ''} to CSV`,
+    });
+  };
+
+  const handleClearSelection = () => {
+    setRowSelection({});
+  };
+
+  // Validation for creating invoice
+  const canCreateInvoice = useMemo(() => {
+    if (selectedLineItems.length === 0) {
+      return { valid: false, error: 'No line items selected' };
+    }
+
+    // Check if all line items are from the same campaign
+    const campaignIds = new Set(selectedLineItems.map(item => item.campaignId));
+    if (campaignIds.size > 1) {
+      return { valid: false, error: 'Line items must be from the same campaign' };
+    }
+
+    // Check if any line items are already on an invoice
+    const alreadyInvoiced = selectedLineItems.filter(item => item.invoiceId);
+    if (alreadyInvoiced.length > 0) {
+      return { valid: false, error: `${alreadyInvoiced.length} line item${alreadyInvoiced.length > 1 ? 's are' : ' is'} already on an invoice` };
+    }
+
+    return { valid: true, error: null };
+  }, [selectedLineItems]);
+
+  const handleCreateInvoice = () => {
+    if (!canCreateInvoice.valid) {
+      toast.error('Cannot create invoice', {
+        description: canCreateInvoice.error!,
+      });
+      return;
+    }
+
+    setShowCreateDialog(true);
+  };
+
+  const handleConfirmCreateInvoice = async (data: {
+    clientName: string;
+    clientEmail: string;
+    issueDate: Date;
+    dueDate: Date;
+    currency: string;
+  }) => {
+    if (selectedLineItems.length === 0) return;
+
+    const campaignId = selectedLineItems[0].campaignId;
+    const bookedAmount = selectedLineItems.reduce((sum, item) => sum + item.bookedAmount, 0);
+    const actualAmount = selectedLineItems.reduce((sum, item) => sum + item.actualAmount, 0);
+    const totalAdjustments = selectedLineItems.reduce((sum, item) => sum + item.adjustments, 0);
+    const totalAmount = actualAmount + totalAdjustments;
+
+    try {
+      const invoiceId = await createInvoice.mutateAsync({
+        campaignId,
+        lineItemIds: selectedLineItems.map(item => item.id),
+        clientName: data.clientName,
+        clientEmail: data.clientEmail,
+        issueDate: data.issueDate,
+        dueDate: data.dueDate,
+        currency: data.currency,
+        bookedAmount,
+        actualAmount,
+        totalAdjustments,
+        totalAmount,
+      });
+
+      setShowCreateDialog(false);
+      setRowSelection({});
+
+      toast.success('Invoice created', {
+        description: `Successfully created invoice with ${selectedLineItems.length} line item${selectedLineItems.length > 1 ? 's' : ''}`,
+      });
+
+      // Navigate to the new invoice
+      navigate(`/invoices/${invoiceId}`);
+    } catch (error) {
+      console.error('Failed to create invoice:', error);
+      toast.error('Failed to create invoice', {
+        description: 'Please try again or contact support if the problem persists',
+      });
+    }
+  };
 
   return (
     <div className='container h-full flex flex-col'>
@@ -256,25 +422,60 @@ function LineItems() {
                       <SelectItem value="all">All campaigns</SelectItem>
                       {campaigns.map((campaign) => {
                         const isLong = campaign.name.length > 35
-                        const displayName = isLong ? `${campaign.name.slice(0, 35)}...` : campaign.name
-
                         return (
-                          <TooltipProvider key={campaign.id} delayDuration={300}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <SelectItem value={campaign.id} className="cursor-pointer">
-                                  <span className="block truncate max-w-[240px]">{displayName}</span>
-                                </SelectItem>
-                              </TooltipTrigger>
-                              {isLong && (
-                                <TooltipContent side="left" className="max-w-xs">
-                                  <p className="break-words">{campaign.name}</p>
-                                </TooltipContent>
-                              )}
-                            </Tooltip>
-                          </TooltipProvider>
+                          <SelectItem key={campaign.id} value={campaign.id}>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="break-words">
+                                    {isLong ? `${campaign.name.slice(0, 35)}...` : campaign.name}
+                                  </span>
+                                </TooltipTrigger>
+                                {isLong && (
+                                  <TooltipContent>
+                                    <p className="max-w-xs">{campaign.name}</p>
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
+                          </SelectItem>
                         )
                       })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Invoice Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none">Invoice</label>
+                  <Select
+                    value={dataFilters.invoiceId || "all"}
+                    onValueChange={(value) => {
+                      handleFilterChange({
+                        invoiceId: value === "all" ? undefined : value,
+                      })
+                    }}
+                  >
+                    <SelectTrigger size="sm" className="w-full">
+                      <SelectValue placeholder="All invoices">
+                        {dataFilters.invoiceId
+                          ? (() => {
+                              const invoice = invoices.find(inv => inv.id === dataFilters.invoiceId)
+                              const number = invoice?.invoiceNumber || ''
+                              return number
+                            })()
+                          : "All invoices"
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-w-[280px]">
+                      <SelectItem value="all">All invoices</SelectItem>
+                      <SelectItem value="not-invoiced">Not invoiced</SelectItem>
+                      {invoices.map((invoice) => (
+                        <SelectItem key={invoice.id} value={invoice.id}>
+                          {invoice.invoiceNumber}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -306,6 +507,16 @@ function LineItems() {
               onRemove={() => handleFilterChange({ campaignId: undefined })}
             />
           )}
+          {dataFilters.invoiceId && (
+            <FilterBadge
+              label="Invoice"
+              value={dataFilters.invoiceId === 'not-invoiced'
+                ? 'Not invoiced'
+                : invoices.find(inv => inv.id === dataFilters.invoiceId)?.invoiceNumber || dataFilters.invoiceId
+              }
+              onRemove={() => handleFilterChange({ invoiceId: undefined })}
+            />
+          )}
           {dataFilters.createdDateRange && (
             <FilterBadge
               label="Created Date"
@@ -331,6 +542,33 @@ function LineItems() {
           pageSizeOptions={[1, 5, 10, 20, 50, 100]}
         />
       </div>
+
+      <BulkActionToolbar
+        selectedCount={selectedLineItems.length}
+        onClearSelection={handleClearSelection}
+        actions={[
+          {
+            label: 'Create Invoice',
+            icon: <FileText className="mr-2 h-4 w-4" />,
+            onClick: handleCreateInvoice,
+            variant: 'default',
+          },
+          {
+            label: 'Export CSV',
+            icon: <Download className="mr-2 h-4 w-4" />,
+            onClick: handleBulkExport,
+            variant: 'secondary',
+          },
+        ]}
+      />
+
+      <CreateInvoiceDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        lineItems={selectedLineItems}
+        onConfirm={handleConfirmCreateInvoice}
+        isCreating={createInvoice.isPending}
+      />
     </div>
   )
 }

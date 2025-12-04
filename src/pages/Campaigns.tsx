@@ -8,10 +8,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { FilterBadge } from '@/components/FilterBadge'
+import { BulkActionToolbar } from '@/components/BulkActionToolbar'
 import DataTable from '@/components/DataTable'
-import { useState, useEffect } from 'react'
+import { exportToCsv } from '@/lib/exportToCsv'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Filter } from 'lucide-react'
+import { Filter, Download } from 'lucide-react'
+import { toast } from 'sonner'
 import type { Campaign, CampaignFilters } from '@/types/campaign'
 import type { RowSelectionState, Table, Row } from '@tanstack/react-table'
 
@@ -187,6 +190,41 @@ function Campaigns() {
     return ''
   }
 
+  // Get selected campaigns
+  const selectedCampaigns = useMemo(() => {
+    return Object.keys(rowSelection)
+      .filter(key => rowSelection[key])
+      .map(index => campaigns[parseInt(index)])
+      .filter(Boolean);
+  }, [rowSelection, campaigns]);
+
+  // Bulk action handlers
+  const handleBulkExport = () => {
+    if (selectedCampaigns.length === 0) return;
+
+    exportToCsv(
+      selectedCampaigns,
+      `campaigns-${new Date().toISOString().split('T')[0]}`,
+      [
+        { key: 'name', header: 'Campaign Name' },
+        { key: 'status', header: 'Status' },
+        { key: 'startDate', header: 'Start Date' },
+        { key: 'endDate', header: 'End Date' },
+        { key: 'lineItemIds', header: 'Line Items Count' },
+        { key: 'invoiceIds', header: 'Invoices Count' },
+        { key: 'createdAt', header: 'Created At' },
+      ]
+    );
+
+    toast.success('Export successful', {
+      description: `Exported ${selectedCampaigns.length} campaign${selectedCampaigns.length > 1 ? 's' : ''} to CSV`,
+    });
+  };
+
+  const handleClearSelection = () => {
+    setRowSelection({});
+  };
+
   return (
     <div className='container h-full flex flex-col'>
       <div className="flex items-center justify-between mb-6">
@@ -356,6 +394,19 @@ function Campaigns() {
           pageSizeOptions={[1, 5, 10, 20, 50, 100]}
         />
       </div>
+
+      <BulkActionToolbar
+        selectedCount={selectedCampaigns.length}
+        onClearSelection={handleClearSelection}
+        actions={[
+          {
+            label: 'Export CSV',
+            icon: <Download className="mr-2 h-4 w-4" />,
+            onClick: handleBulkExport,
+            variant: 'secondary',
+          },
+        ]}
+      />
     </div>
   )
 }

@@ -53,3 +53,41 @@ export function useUpdateInvoiceStatus() {
     },
   });
 }
+
+// Hook to create invoice from line items
+export function useCreateInvoiceFromLineItems() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: {
+      campaignId: string;
+      lineItemIds: string[];
+      clientName: string;
+      clientEmail: string;
+      issueDate: Date;
+      dueDate: Date;
+      currency: string;
+      bookedAmount: number;
+      actualAmount: number;
+      totalAdjustments: number;
+      totalAmount: number;
+    }) => invoiceService.createFromLineItems(params),
+    onSuccess: () => {
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+    },
+  });
+}
+
+// Hook to get all invoices (for context/dropdowns)
+export function useAllInvoices() {
+  return useQuery<Invoice[]>({
+    queryKey: ['invoices', 'all'],
+    queryFn: async () => {
+      const response = await invoiceService.getByFilter({ pageSize: 1000 });
+      return response.data;
+    },
+  });
+}

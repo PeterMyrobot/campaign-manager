@@ -1,4 +1,4 @@
-import { collection, getDocs, getDoc, doc, updateDoc, Timestamp, getCountFromServer, query, where, orderBy, limit, startAfter, type DocumentData, type QueryDocumentSnapshot, type QueryConstraint } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, updateDoc, Timestamp, getCountFromServer, query, where, orderBy, limit, startAfter, type DocumentData, type QueryDocumentSnapshot, type QueryConstraint, writeBatch } from "firebase/firestore";
 import { db } from "./firebase";
 import type { Invoice, InvoiceFilters } from "@/types/invoice";
 
@@ -247,5 +247,70 @@ export const invoiceService = {
     }
 
     await updateDoc(docRef, updates);
+  },
+
+  // Create new invoice from line items
+  async createFromLineItems(params: {
+    campaignId: string;
+    lineItemIds: string[];
+    clientName: string;
+    clientEmail: string;
+    issueDate: Date;
+    dueDate: Date;
+    currency: string;
+    bookedAmount: number;
+    actualAmount: number;
+    totalAdjustments: number;
+    totalAmount: number;
+  }): Promise<string> {
+    const batch = writeBatch(db);
+
+    // Generate invoice number (simple incremental for now, can be enhanced)
+    const invoiceNumber = `INV-${Date.now()}`;
+
+    // Create invoice document
+    const invoiceRef = doc(collection(db, COLLECTION_NAME));
+    batch.set(invoiceRef, {
+      campaignId: params.campaignId,
+      invoiceNumber,
+      lineItemIds: params.lineItemIds,
+      adjustmentIds: [],
+      bookedAmount: params.bookedAmount,
+      actualAmount: params.actualAmount,
+      totalAdjustments: params.totalAdjustments,
+      totalAmount: params.totalAmount,
+      currency: params.currency,
+      issueDate: Timestamp.fromDate(params.issueDate),
+      dueDate: Timestamp.fromDate(params.dueDate),
+      paidDate: null,
+      status: 'draft',
+      clientName: params.clientName,
+      clientEmail: params.clientEmail,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+
+    // Update each line item with the invoiceId
+    params.lineItemIds.forEach(lineItemId => {
+      const lineItemRef = doc(db, 'lineItems', lineItemId);
+      batch.update(lineItemRef, {
+        invoiceId: invoiceRef.id,
+        updatedAt: Timestamp.now(),
+      });
+    });
+
+    // Update campaign with the new invoiceId
+    const campaignRef = doc(db, 'campaigns', params.campaignId);
+    const campaignSnap = await getDoc(campaignRef);
+    if (campaignSnap.exists()) {
+      const currentInvoiceIds = campaignSnap.data().invoiceIds || [];
+      batch.update(campaignRef, {
+        invoiceIds: [...currentInvoiceIds, invoiceRef.id],
+        updatedAt: Timestamp.now(),
+      });
+    }
+
+    await batch.commit();
+    return invoiceRef.id;
   },
 }

@@ -15,11 +15,14 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { FilterBadge } from '@/components/FilterBadge'
+import { BulkActionToolbar } from '@/components/BulkActionToolbar'
 import DataTable from '@/components/DataTable'
 import InvoiceLineItemsTable from '@/components/InvoiceLineItemsTable'
+import { exportToCsv } from '@/lib/exportToCsv'
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ChevronRight, ChevronDown, Filter } from 'lucide-react'
+import { ChevronRight, ChevronDown, Filter, Download } from 'lucide-react'
+import { toast } from 'sonner'
 import type { Invoice, InvoiceFilters } from '@/types/invoice'
 import type { RowSelectionState, ExpandedState, Table, Row } from '@tanstack/react-table'
 import type { Campaign } from '@/types/campaign'
@@ -277,6 +280,43 @@ function Invoices() {
     return ''
   }
 
+  // Get selected invoices
+  const selectedInvoices = useMemo(() => {
+    return Object.keys(rowSelection)
+      .filter(key => rowSelection[key])
+      .map(index => enrichedInvoices[parseInt(index)])
+      .filter(Boolean);
+  }, [rowSelection, enrichedInvoices]);
+
+  // Bulk action handlers
+  const handleBulkExport = () => {
+    if (selectedInvoices.length === 0) return;
+
+    exportToCsv(
+      selectedInvoices,
+      `invoices-${new Date().toISOString().split('T')[0]}`,
+      [
+        { key: 'invoiceNumber', header: 'Invoice Number' },
+        { key: 'campaignName', header: 'Campaign' },
+        { key: 'status', header: 'Status' },
+        { key: 'clientName', header: 'Client' },
+        { key: 'totalAmount', header: 'Total Amount' },
+        { key: 'currency', header: 'Currency' },
+        { key: 'issueDate', header: 'Issue Date' },
+        { key: 'dueDate', header: 'Due Date' },
+        { key: 'paidDate', header: 'Paid Date' },
+      ]
+    );
+
+    toast.success('Export successful', {
+      description: `Exported ${selectedInvoices.length} invoice${selectedInvoices.length > 1 ? 's' : ''} to CSV`,
+    });
+  };
+
+  const handleClearSelection = () => {
+    setRowSelection({});
+  };
+
   return (
     <div className='container h-full flex flex-col'>
       <div className="flex items-center justify-between mb-6">
@@ -529,6 +569,19 @@ function Invoices() {
           pageSizeOptions={[1, 5, 10, 20, 50, 100]}
         />
       </div>
+
+      <BulkActionToolbar
+        selectedCount={selectedInvoices.length}
+        onClearSelection={handleClearSelection}
+        actions={[
+          {
+            label: 'Export CSV',
+            icon: <Download className="mr-2 h-4 w-4" />,
+            onClick: handleBulkExport,
+            variant: 'secondary',
+          },
+        ]}
+      />
     </div>
   )
 }
