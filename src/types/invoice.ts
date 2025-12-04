@@ -4,6 +4,9 @@ export interface Invoice {
   invoiceNumber: string;
   lineItemIds: string[];
   adjustmentIds: string[];
+  bookedAmount: number;
+  actualAmount: number;
+  totalAdjustments: number;
   totalAmount: number;
   currency: string;
   issueDate: Date;

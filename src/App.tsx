@@ -5,6 +5,7 @@ import CampaignDetail from './pages/CampaignDetail'
 import Dashboard from './pages/Dashboard';
 import LineItems from './pages/LineItems';
 import Invoices from './pages/Invoices';
+import InvoiceDetail from './pages/InvoiceDetail';
 
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
           <Route path='campaigns/:id' element={<CampaignDetail />} />
           <Route path='line-items' element={<LineItems />} />
           <Route path='invoices' element={<Invoices />} />
+          <Route path='invoices/:id' element={<InvoiceDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>

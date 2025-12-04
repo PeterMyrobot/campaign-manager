@@ -26,13 +26,27 @@ export function useInvoiceCount(filters?: Omit<InvoiceFilters, 'page' | 'pageSiz
   });
 }
 
-// Hook to update invoice total amount
-export function useUpdateInvoiceTotalAmount() {
+// Hook to update invoice amounts
+export function useUpdateInvoiceAmounts() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, totalAmount }: { id: string; totalAmount: number }) =>
-      invoiceService.updateTotalAmount(id, totalAmount),
+    mutationFn: ({ id, amounts }: { id: string; amounts: { bookedAmount: number; actualAmount: number; totalAdjustments: number; totalAmount: number } }) =>
+      invoiceService.updateAmounts(id, amounts),
+    onSuccess: () => {
+      // Invalidate and refetch invoice queries
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    },
+  });
+}
+
+// Hook to update invoice status
+export function useUpdateInvoiceStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, status, paidDate }: { id: string; status: Invoice['status']; paidDate?: Date | null }) =>
+      invoiceService.updateStatus(id, status, paidDate),
     onSuccess: () => {
       // Invalidate and refetch invoice queries
       queryClient.invalidateQueries({ queryKey: ['invoices'] });

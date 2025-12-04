@@ -76,7 +76,12 @@ const columns = [
     header: "Invoice Number",
     cell: ({ row }: { row: Row<EnrichedInvoice> }) => {
       return (
-        <div className="font-medium">{row.getValue("invoiceNumber")}</div>
+        <Link
+          to={`/invoices/${row.original.id}`}
+          className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+        >
+          {row.getValue("invoiceNumber")}
+        </Link>
       );
     },
   },
@@ -270,6 +275,7 @@ function Invoices() {
           renderSubRow={(row) => (
             <InvoiceLineItemsTable
               invoiceId={row.original.id}
+              invoiceStatus={row.original.status}
             />
           )}
           pagination={pagination}

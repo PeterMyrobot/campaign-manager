@@ -28,6 +28,9 @@ export const invoiceService = {
       invoiceNumber: data.invoiceNumber,
       lineItemIds: data.lineItemIds || [],
       adjustmentIds: data.adjustmentIds || [],
+      bookedAmount: data.bookedAmount || 0,
+      actualAmount: data.actualAmount || 0,
+      totalAdjustments: data.totalAdjustments || 0,
       totalAmount: data.totalAmount,
       currency: data.currency,
       issueDate: data.issueDate?.toDate(),
@@ -100,6 +103,9 @@ export const invoiceService = {
         invoiceNumber: data.invoiceNumber,
         lineItemIds: data.lineItemIds || [],
         adjustmentIds: data.adjustmentIds || [],
+        bookedAmount: data.bookedAmount || 0,
+        actualAmount: data.actualAmount || 0,
+        totalAdjustments: data.totalAdjustments || 0,
         totalAmount: data.totalAmount,
         currency: data.currency,
         issueDate: data.issueDate?.toDate(),
@@ -122,12 +128,33 @@ export const invoiceService = {
     };
   },
 
-  // Update invoice total amount
-  async updateTotalAmount(id: string, totalAmount: number): Promise<void> {
+  // Update invoice amounts (booked, actual, adjustments, total)
+  async updateAmounts(id: string, amounts: { bookedAmount: number; actualAmount: number; totalAdjustments: number; totalAmount: number }): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, id);
     await updateDoc(docRef, {
-      totalAmount,
+      bookedAmount: amounts.bookedAmount,
+      actualAmount: amounts.actualAmount,
+      totalAdjustments: amounts.totalAdjustments,
+      totalAmount: amounts.totalAmount,
       updatedAt: Timestamp.now(),
     });
+  },
+
+  // Update invoice status
+  async updateStatus(id: string, status: Invoice['status'], paidDate?: Date | null): Promise<void> {
+    const docRef = doc(db, COLLECTION_NAME, id);
+    const updates: Record<string, unknown> = {
+      status,
+      updatedAt: Timestamp.now(),
+    };
+
+    // Update paidDate if status is 'paid'
+    if (status === 'paid' && paidDate) {
+      updates.paidDate = Timestamp.fromDate(paidDate);
+    } else if (status !== 'paid') {
+      updates.paidDate = null;
+    }
+
+    await updateDoc(docRef, updates);
   },
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLineItems } from '@/hooks/useLineItems';
 import { useUpdateLineItemAdjustments } from '@/hooks/useLineItems';
-import { useUpdateInvoiceTotalAmount } from '@/hooks/useInvoices';
+import { useUpdateInvoiceAmounts } from '@/hooks/useInvoices';
 import type { LineItem } from '@/types/lineItem';
 import type { ColumnDef, Row } from '@tanstack/react-table';
 import DataTable from '@/components/DataTable';
@@ -11,10 +11,11 @@ import { Check, X, Pencil } from 'lucide-react';
 
 interface InvoiceLineItemsTableProps {
   invoiceId: string;
+  invoiceStatus?: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
   onTotalUpdate?: (newTotal: number) => void;
 }
 
-function InvoiceLineItemsTable({ invoiceId, onTotalUpdate }: InvoiceLineItemsTableProps) {
+function InvoiceLineItemsTable({ invoiceId, invoiceStatus, onTotalUpdate }: InvoiceLineItemsTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
 
@@ -24,9 +25,13 @@ function InvoiceLineItemsTable({ invoiceId, onTotalUpdate }: InvoiceLineItemsTab
 
   // Mutations
   const updateAdjustments = useUpdateLineItemAdjustments();
-  const updateInvoiceTotal = useUpdateInvoiceTotalAmount();
+  const updateInvoiceAmounts = useUpdateInvoiceAmounts();
+
+  // Check if adjustments can be edited (only for draft or overdue invoices)
+  const canEditAdjustments = invoiceStatus === 'draft' || invoiceStatus === 'overdue';
 
   const handleEditClick = (lineItem: LineItem) => {
+    if (!canEditAdjustments) return;
     setEditingId(lineItem.id);
     setEditValue(lineItem.adjustments.toString());
   };
@@ -51,21 +56,32 @@ function InvoiceLineItemsTable({ invoiceId, onTotalUpdate }: InvoiceLineItemsTab
         adjustments: newAdjustment,
       });
 
-      // Calculate new invoice total
-      const newTotal = lineItems.reduce((sum, item) => {
+      // Calculate new invoice amounts
+      const amounts = lineItems.reduce((acc, item) => {
         const adjustments = item.id === lineItem.id ? newAdjustment : item.adjustments;
-        return sum + item.actualAmount + adjustments;
-      }, 0);
+        return {
+          bookedAmount: acc.bookedAmount + item.bookedAmount,
+          actualAmount: acc.actualAmount + item.actualAmount,
+          totalAdjustments: acc.totalAdjustments + adjustments,
+        };
+      }, { bookedAmount: 0, actualAmount: 0, totalAdjustments: 0 });
 
-      // Update invoice total
-      await updateInvoiceTotal.mutateAsync({
+      const totalAmount = amounts.actualAmount + amounts.totalAdjustments;
+
+      // Update invoice amounts
+      await updateInvoiceAmounts.mutateAsync({
         id: invoiceId,
-        totalAmount: Math.round(newTotal * 100) / 100,
+        amounts: {
+          bookedAmount: Math.round(amounts.bookedAmount * 100) / 100,
+          actualAmount: Math.round(amounts.actualAmount * 100) / 100,
+          totalAdjustments: Math.round(amounts.totalAdjustments * 100) / 100,
+          totalAmount: Math.round(totalAmount * 100) / 100,
+        },
       });
 
       // Notify parent component
       if (onTotalUpdate) {
-        onTotalUpdate(Math.round(newTotal * 100) / 100);
+        onTotalUpdate(Math.round(totalAmount * 100) / 100);
       }
 
       setEditingId(null);
@@ -146,7 +162,7 @@ function InvoiceLineItemsTable({ invoiceId, onTotalUpdate }: InvoiceLineItemsTab
         return <div className="text-right font-medium text-sm">${total.toLocaleString()}</div>;
       },
     },
-    {
+    ...(canEditAdjustments ? [{
       id: 'actions',
       header: () => <div className="text-center">Actions</div>,
       cell: ({ row }: { row: Row<LineItem> }) => {
@@ -161,10 +177,10 @@ function InvoiceLineItemsTable({ invoiceId, onTotalUpdate }: InvoiceLineItemsTab
                   size="sm"
                   variant="ghost"
                   onClick={() => handleSaveEdit(lineItem)}
-                  disabled={updateAdjustments.isPending || updateInvoiceTotal.isPending}
+                  disabled={updateAdjustments.isPending || updateInvoiceAmounts.isPending}
                   className="h-7 w-7 p-0"
                 >
-                  {updateAdjustments.isPending || updateInvoiceTotal.isPending ? (
+                  {updateAdjustments.isPending || updateInvoiceAmounts.isPending ? (
                     <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-900"></div>
                   ) : (
                     <Check className="h-4 w-4 text-green-600" />
@@ -174,7 +190,7 @@ function InvoiceLineItemsTable({ invoiceId, onTotalUpdate }: InvoiceLineItemsTab
                   size="sm"
                   variant="ghost"
                   onClick={handleCancelEdit}
-                  disabled={updateAdjustments.isPending || updateInvoiceTotal.isPending}
+                  disabled={updateAdjustments.isPending || updateInvoiceAmounts.isPending}
                   className="h-7 w-7 p-0"
                 >
                   <X className="h-4 w-4 text-red-600" />
@@ -193,7 +209,7 @@ function InvoiceLineItemsTable({ invoiceId, onTotalUpdate }: InvoiceLineItemsTab
           </div>
         );
       },
-    },
+    }] : []),
   ];
 
   if (isLoading) {
@@ -213,22 +229,24 @@ function InvoiceLineItemsTable({ invoiceId, onTotalUpdate }: InvoiceLineItemsTab
   }
 
   return (
-    <div className="bg-muted/30 p-4 rounded-md">
+    <div className="bg-muted/30 p-4 rounded-md h-full flex flex-col">
       <div className="mb-2 text-sm font-medium text-muted-foreground">
         Line Items ({lineItems.length})
       </div>
-      <DataTable
-        data={lineItems}
-        columns={columns}
-        setRowSelection={() => {}}
-        rowSelection={{}}
-        pagination={{ pageIndex: 0, pageSize: lineItems.length }}
-        setPagination={() => {}}
-        totalCount={lineItems.length}
-        isLoading={false}
-        enableGlobalSearch={false}
-        pageSizeOptions={[]}
-      />
+      <div className="flex-1 min-h-0">
+        <DataTable
+          data={lineItems}
+          columns={columns}
+          setRowSelection={() => {}}
+          rowSelection={{}}
+          pagination={{ pageIndex: 0, pageSize: lineItems.length }}
+          setPagination={() => {}}
+          totalCount={lineItems.length}
+          isLoading={false}
+          enableGlobalSearch={false}
+          pageSizeOptions={[]}
+        />
+      </div>
     </div>
   );
 }

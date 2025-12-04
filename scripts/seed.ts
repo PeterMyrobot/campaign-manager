@@ -170,15 +170,21 @@ async function seedFromPlacements(): Promise<void> {
         (i + 1) * itemsPerInvoice
       );
 
-      // Calculate total amount from assigned line items
-      let totalAmount = 0;
+      // Calculate aggregated amounts from assigned line items
+      let bookedAmount = 0;
+      let actualAmount = 0;
+      let totalAdjustments = 0;
       for (const lineItemId of invoiceLineItemIds) {
         const lineItemIndex = lineItemIds.indexOf(lineItemId);
         if (lineItemIndex !== -1) {
           const lineItem = campaignData.line_items[lineItemIndex];
-          totalAmount += lineItem.actual_amount + lineItem.adjustments;
+          bookedAmount += lineItem.booked_amount;
+          actualAmount += lineItem.actual_amount;
+          totalAdjustments += lineItem.adjustments;
         }
       }
+
+      const totalAmount = actualAmount + totalAdjustments;
 
       // Make overdue invoices have a past due date
       if (invoiceStatus === 'overdue') {
@@ -190,6 +196,9 @@ async function seedFromPlacements(): Promise<void> {
         invoiceNumber: `INV-${now.getFullYear()}-${String(invoiceCount + 1).padStart(4, '0')}`,
         lineItemIds: invoiceLineItemIds,
         adjustmentIds: [],
+        bookedAmount: Math.round(bookedAmount * 100) / 100,
+        actualAmount: Math.round(actualAmount * 100) / 100,
+        totalAdjustments: Math.round(totalAdjustments * 100) / 100,
         totalAmount: Math.round(totalAmount * 100) / 100,
         currency: 'USD',
         issueDate: Timestamp.fromDate(issueDate),
