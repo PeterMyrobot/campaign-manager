@@ -17,6 +17,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 
 interface DataTableProps<TData, TValue> {
   data: TData[]
@@ -170,6 +179,51 @@ function DataTable<TData, TValue>({
         </Table>
       </div>
       <div className="flex items-center justify-between px-2 py-4">
+        <Pagination className="mx-0 w-auto">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  if (pagination.pageIndex > 0) {
+                    table.previousPage()
+                  }
+                }}
+                aria-disabled={isLoading || pagination.pageIndex === 0}
+                className={
+                  isLoading || pagination.pageIndex === 0
+                    ? "pointer-events-none opacity-50"
+                    : "cursor-pointer"
+                }
+              />
+            </PaginationItem>
+
+            <PaginationItem>
+              <div className="flex items-center justify-center min-w-[100px] text-sm font-medium">
+                Page {pagination.pageIndex + 1} {pageCount > 0 && `of ${pageCount}`}
+              </div>
+            </PaginationItem>
+
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  if (totalCount !== undefined && pagination.pageIndex < pageCount - 1) {
+                    table.nextPage()
+                  }
+                }}
+                aria-disabled={isLoading || (totalCount !== undefined && pagination.pageIndex >= pageCount - 1)}
+                className={
+                  isLoading || (totalCount !== undefined && pagination.pageIndex >= pageCount - 1)
+                    ? "pointer-events-none opacity-50"
+                    : "cursor-pointer"
+                }
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
         <div className="flex items-center gap-4">
           <div className="text-sm text-muted-foreground">
             {totalCount !== undefined ? (
@@ -208,29 +262,6 @@ function DataTable<TData, TValue>({
               </SelectContent>
             </Select>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={isLoading || pagination.pageIndex === 0}
-          >
-            Previous
-          </Button>
-          <div className="text-sm">
-            Page {pagination.pageIndex + 1} of {pageCount > 0 ? pageCount : 1}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={isLoading || (totalCount !== undefined && pagination.pageIndex >= pageCount - 1)}
-          >
-            Next
-          </Button>
-
         </div>
       </div>
     </div>
