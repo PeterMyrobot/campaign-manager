@@ -7,6 +7,7 @@ import type { ColumnDef, Row } from '@tanstack/react-table';
 import DataTable from '@/components/DataTable';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Check, X, Pencil } from 'lucide-react';
 
 interface InvoiceLineItemsTableProps {
@@ -214,8 +215,20 @@ function InvoiceLineItemsTable({ invoiceId, invoiceStatus, onTotalUpdate }: Invo
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+      <div className="bg-muted/30 p-4 rounded-md">
+        <Skeleton className="h-4 w-32 mb-4" />
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <Skeleton className="h-10 flex-1" />
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-24" />
+              {canEditAdjustments && <Skeleton className="h-10 w-16" />}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
