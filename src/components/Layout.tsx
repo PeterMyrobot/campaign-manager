@@ -1,51 +1,86 @@
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+import { Home, Megaphone, FileText, Receipt } from 'lucide-react';
+
+const menuItems = [
+  {
+    title: 'Dashboard',
+    url: '/',
+    icon: Home,
+  },
+  {
+    title: 'Campaigns',
+    url: '/campaigns',
+    icon: Megaphone,
+  },
+  {
+    title: 'Line Items',
+    url: '/line-items',
+    icon: FileText,
+  },
+  {
+    title: 'Invoices',
+    url: '/invoices',
+    icon: Receipt,
+  },
+];
+
 export default function Layout() {
+  const location = useLocation();
+
   return (
-    <div className="flex h-lvh bg-background text-foreground">
-      <nav className="w-52 border-r border-border bg-sidebar p-5">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="mt-0 text-sidebar-foreground font-semibold">Menu</h2>
-        </div>
-        <ul className="list-none p-0 space-y-2">
-          <li>
-            <Link
-              to="/"
-              className="block px-3 py-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            >
-              Dashboard
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/campaigns"
-              className="block px-3 py-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            >
-              Campaigns
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/line-items"
-              className="block px-3 py-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            >
-              Line Items
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/invoices"
-              className="block px-3 py-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            >
-              Invoices
-            </Link>
-          </li>
-        </ul>
-      </nav>
-      <div className="flex-1 flex flex-col min-h-0">
-        <main className="flex-1 p-5 overflow-hidden">
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarHeader>
+          <div className="px-2 py-1">
+            <h2 className="text-lg font-semibold">Campaign Manager</h2>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {menuItems.map((item) => {
+                  const isActive = location.pathname === item.url ||
+                    (item.url !== '/' && location.pathname.startsWith(item.url));
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild isActive={isActive}>
+                        <Link to={item.url}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset>
+        <header className="flex h-14 items-center gap-2 border-b px-4">
+          <SidebarTrigger />
+        </header>
+        <main className="flex-1 p-5 overflow-auto">
           <Outlet />
         </main>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
