@@ -1,4 +1,4 @@
-import { collection, getDocs, getDoc, doc, updateDoc, Timestamp, getCountFromServer, query, where, orderBy, limit, startAfter, type DocumentData, type QueryDocumentSnapshot, type QueryConstraint, writeBatch } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, updateDoc, Timestamp, getCountFromServer, query, where, orderBy, limit, startAfter, type DocumentData, type QueryDocumentSnapshot, type QueryConstraint, writeBatch, addDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import type { Invoice, InvoiceFilters } from "@/types/invoice";
 
@@ -400,6 +400,11 @@ export const invoiceService = {
       throw new Error('Some line items are already in the destination invoice');
     }
 
+    // Fetch line item details for change log
+    const lineItemDocs = await Promise.all(
+      params.lineItemIds.map((id: string) => getDoc(doc(db, 'lineItems', id)))
+    );
+
     // Remove line items from source invoice
     const newFromLineItemIds = fromLineItemIds.filter(id => !params.lineItemIds.includes(id));
     batch.update(fromInvoiceRef, {
@@ -423,5 +428,45 @@ export const invoiceService = {
     });
 
     await batch.commit();
+
+    // Create change log entries for each moved line item
+    // These are created AFTER the batch commit to ensure the move operation succeeds first
+    const changeLogPromises = lineItemDocs.map(async (lineItemSnap) => {
+      if (!lineItemSnap.exists()) return;
+
+      const lineItemData = lineItemSnap.data();
+
+      await addDoc(collection(db, 'changeLogs'), {
+        entityType: 'line_item',
+        entityId: lineItemSnap.id,
+        changeType: 'line_item_moved',
+
+        // Amount tracking (unchanged by move, using current values)
+        previousAmount: lineItemData.adjustments || 0,
+        newAmount: lineItemData.adjustments || 0,
+        difference: 0,
+
+        // Reference amounts at time of move
+        bookedAmountAtTime: lineItemData.bookedAmount || 0,
+        actualAmountAtTime: lineItemData.actualAmount || 0,
+
+        // Metadata
+        comment: `Line item moved from invoice ${fromInvoiceData.invoiceNumber} to ${toInvoiceData.invoiceNumber}`,
+        userName: 'System',
+        timestamp: Timestamp.now(),
+
+        // Related entities (destination invoice)
+        invoiceId: params.toInvoiceId,
+        invoiceNumber: toInvoiceData.invoiceNumber,
+        campaignId: lineItemData.campaignId || fromInvoiceData.campaignId,
+        lineItemName: lineItemData.name,
+
+        // Line item move specific fields
+        previousInvoiceId: params.fromInvoiceId,
+        previousInvoiceNumber: fromInvoiceData.invoiceNumber,
+      });
+    });
+
+    await Promise.all(changeLogPromises);
   },
 }

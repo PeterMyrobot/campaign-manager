@@ -45,6 +45,8 @@ function documentToChangeLogEntry(doc: QueryDocumentSnapshot<DocumentData>): Cha
     invoiceNumber: data.invoiceNumber,
     campaignId: data.campaignId,
     lineItemName: data.lineItemName,
+    previousInvoiceId: data.previousInvoiceId,
+    previousInvoiceNumber: data.previousInvoiceNumber,
   };
 }
 

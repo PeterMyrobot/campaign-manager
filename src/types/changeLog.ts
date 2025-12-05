@@ -2,7 +2,7 @@ export interface ChangeLogEntry {
   id: string;
   entityType: 'line_item' | 'invoice';
   entityId: string; // lineItemId or invoiceId
-  changeType: 'adjustment_created' | 'adjustment_updated' | 'adjustment_deleted';
+  changeType: 'adjustment_created' | 'adjustment_updated' | 'adjustment_deleted' | 'line_item_moved';
 
   // Amount tracking
   previousAmount: number;
@@ -24,6 +24,10 @@ export interface ChangeLogEntry {
   invoiceNumber: string;
   campaignId: string;
   lineItemName?: string;
+
+  // Line item move specific fields
+  previousInvoiceId?: string; // For line_item_moved: source invoice
+  previousInvoiceNumber?: string; // For line_item_moved: source invoice number
 }
 
 export interface DateRange {
@@ -36,7 +40,7 @@ export interface ChangeLogFilters {
   entityType?: 'line_item' | 'invoice';
   invoiceId?: string;
   campaignId?: string;
-  changeType?: 'adjustment_created' | 'adjustment_updated' | 'adjustment_deleted';
+  changeType?: 'adjustment_created' | 'adjustment_updated' | 'adjustment_deleted' | 'line_item_moved';
   startDate?: Date;
   endDate?: Date;
   page?: number;

@@ -33,6 +33,7 @@ function InvoiceLineItemsTable({ invoiceId, invoiceStatus, onTotalUpdate }: Invo
   // Mutations
   const updateAdjustments = useUpdateLineItemAdjustments();
   const updateInvoiceAmounts = useUpdateInvoiceAmounts();
+  const createChangeLog = useCreateChangeLog();
 
   // Check if adjustments can be edited (only for draft or overdue invoices)
   const canEditAdjustments = invoiceStatus === 'draft' || invoiceStatus === 'overdue';
@@ -54,6 +55,26 @@ function InvoiceLineItemsTable({ invoiceId, invoiceStatus, onTotalUpdate }: Invo
     const { newAdjustment, comment } = data;
 
     try {
+      // Create change log entry first
+      const changeType = selectedLineItem.adjustments === 0 ? 'adjustment_created' : 'adjustment_updated';
+
+      await createChangeLog.mutateAsync({
+        entityType: 'line_item',
+        entityId: selectedLineItem.id,
+        changeType,
+        previousAmount: selectedLineItem.adjustments,
+        newAmount: newAdjustment,
+        difference: newAdjustment - selectedLineItem.adjustments,
+        bookedAmountAtTime: selectedLineItem.bookedAmount,
+        actualAmountAtTime: selectedLineItem.actualAmount,
+        comment,
+        userName: 'System',
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        campaignId: invoice.campaignId,
+        lineItemName: selectedLineItem.name,
+      });
+
       // Update the line item adjustment
       await updateAdjustments.mutateAsync({
         id: selectedLineItem.id,
