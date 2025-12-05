@@ -91,3 +91,38 @@ export function useAllInvoices() {
     },
   });
 }
+
+// Hook to add line items to an existing invoice
+export function useAddLineItemsToInvoice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: {
+      invoiceId: string;
+      lineItemIds: string[];
+    }) => invoiceService.addLineItems(params),
+    onSuccess: () => {
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+    },
+  });
+}
+
+// Hook to move line items from one invoice to another
+export function useMoveLineItemsToInvoice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: {
+      fromInvoiceId: string;
+      toInvoiceId: string;
+      lineItemIds: string[];
+    }) => invoiceService.moveLineItems(params),
+    onSuccess: () => {
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+    },
+  });
+}

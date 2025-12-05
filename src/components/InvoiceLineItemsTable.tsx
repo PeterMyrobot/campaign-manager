@@ -2,14 +2,16 @@ import { useState } from 'react';
 import { useLineItems } from '@/hooks/useLineItems';
 import { useUpdateLineItemAdjustments } from '@/hooks/useLineItems';
 import { useUpdateInvoiceAmounts } from '@/hooks/useInvoices';
+import { useInvoice } from '@/hooks/useInvoices';
+import { useCreateChangeLog } from '@/hooks/useChangeLog';
 import type { LineItem } from '@/types/lineItem';
 import type { ColumnDef, Row } from '@tanstack/react-table';
 import DataTable from '@/components/DataTable';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Check, X, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import { AdjustmentModal } from '@/components/AdjustmentModal';
 
 interface InvoiceLineItemsTableProps {
   invoiceId: string;
@@ -18,12 +20,15 @@ interface InvoiceLineItemsTableProps {
 }
 
 function InvoiceLineItemsTable({ invoiceId, invoiceStatus, onTotalUpdate }: InvoiceLineItemsTableProps) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState<string>('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedLineItem, setSelectedLineItem] = useState<LineItem | null>(null);
 
   // Fetch line items for this invoice
   const { data: response, isLoading } = useLineItems({ invoiceId, pageSize: 100 });
   const lineItems = response?.data ?? [];
+
+  // Fetch invoice details for modal
+  const { data: invoice } = useInvoice(invoiceId);
 
   // Mutations
   const updateAdjustments = useUpdateLineItemAdjustments();
@@ -34,35 +39,30 @@ function InvoiceLineItemsTable({ invoiceId, invoiceStatus, onTotalUpdate }: Invo
 
   const handleEditClick = (lineItem: LineItem) => {
     if (!canEditAdjustments) return;
-    setEditingId(lineItem.id);
-    setEditValue(lineItem.adjustments.toString());
+    setSelectedLineItem(lineItem);
+    setModalOpen(true);
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditValue('');
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setSelectedLineItem(null);
   };
 
-  const handleSaveEdit = async (lineItem: LineItem) => {
-    const newAdjustment = parseFloat(editValue);
+  const handleSaveAdjustment = async (data: { newAdjustment: number; comment: string }) => {
+    if (!selectedLineItem || !invoice) return;
 
-    if (isNaN(newAdjustment)) {
-      toast.error('Invalid number', {
-        description: 'Please enter a valid number for the adjustment',
-      });
-      return;
-    }
+    const { newAdjustment, comment } = data;
 
     try {
       // Update the line item adjustment
       await updateAdjustments.mutateAsync({
-        id: lineItem.id,
+        id: selectedLineItem.id,
         adjustments: newAdjustment,
       });
 
       // Calculate new invoice amounts
       const amounts = lineItems.reduce((acc, item) => {
-        const adjustments = item.id === lineItem.id ? newAdjustment : item.adjustments;
+        const adjustments = item.id === selectedLineItem.id ? newAdjustment : item.adjustments;
         return {
           bookedAmount: acc.bookedAmount + item.bookedAmount,
           actualAmount: acc.actualAmount + item.actualAmount,
@@ -88,8 +88,8 @@ function InvoiceLineItemsTable({ invoiceId, invoiceStatus, onTotalUpdate }: Invo
         onTotalUpdate(Math.round(totalAmount * 100) / 100);
       }
 
-      setEditingId(null);
-      setEditValue('');
+      // Close modal
+      handleModalClose();
 
       // Show success toast
       toast.success('Adjustment updated', {
@@ -130,36 +130,17 @@ function InvoiceLineItemsTable({ invoiceId, invoiceStatus, onTotalUpdate }: Invo
       header: () => <div className="text-right">Adjustments</div>,
       cell: ({ row }: { row: Row<LineItem> }) => {
         const lineItem = row.original;
-        const isEditing = editingId === lineItem.id;
 
         return (
           <div className="text-right text-sm">
-            {isEditing ? (
-              <Input
-                type="number"
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                className="w-32 h-8 text-right text-sm ml-auto"
-                autoFocus
-                step="0.01"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSaveEdit(lineItem);
-                  } else if (e.key === 'Escape') {
-                    handleCancelEdit();
-                  }
-                }}
-              />
-            ) : (
-              <span
-                className={
-                  lineItem.adjustments < 0 ? 'text-red-600' : lineItem.adjustments > 0 ? 'text-green-600' : ''
-                }
-              >
-                {lineItem.adjustments < 0 ? '-' : lineItem.adjustments > 0 ? '+' : ''}$
-                {Math.abs(lineItem.adjustments).toLocaleString()}
-              </span>
-            )}
+            <span
+              className={
+                lineItem.adjustments < 0 ? 'text-red-600' : lineItem.adjustments > 0 ? 'text-green-600' : ''
+              }
+            >
+              {lineItem.adjustments < 0 ? '-' : lineItem.adjustments > 0 ? '+' : ''}$
+              {Math.abs(lineItem.adjustments).toLocaleString()}
+            </span>
           </div>
         );
       },
@@ -178,45 +159,18 @@ function InvoiceLineItemsTable({ invoiceId, invoiceStatus, onTotalUpdate }: Invo
       header: () => <div className="text-center">Actions</div>,
       cell: ({ row }: { row: Row<LineItem> }) => {
         const lineItem = row.original;
-        const isEditing = editingId === lineItem.id;
 
         return (
           <div className="flex items-center justify-center gap-1">
-            {isEditing ? (
-              <>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleSaveEdit(lineItem)}
-                  disabled={updateAdjustments.isPending || updateInvoiceAmounts.isPending}
-                  className="h-7 w-7 p-0"
-                >
-                  {updateAdjustments.isPending || updateInvoiceAmounts.isPending ? (
-                    <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-900"></div>
-                  ) : (
-                    <Check className="h-4 w-4 text-green-600" />
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleCancelEdit}
-                  disabled={updateAdjustments.isPending || updateInvoiceAmounts.isPending}
-                  className="h-7 w-7 p-0"
-                >
-                  <X className="h-4 w-4 text-red-600" />
-                </Button>
-              </>
-            ) : (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleEditClick(lineItem)}
-                className="h-7 w-7 p-0"
-              >
-                <Pencil className="h-3 w-3" />
-              </Button>
-            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleEditClick(lineItem)}
+              className="h-7 w-7 p-0"
+              title="Edit adjustment"
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
           </div>
         );
       },
@@ -252,25 +206,39 @@ function InvoiceLineItemsTable({ invoiceId, invoiceStatus, onTotalUpdate }: Invo
   }
 
   return (
-    <div className="bg-muted/30 p-4 rounded-md h-full flex flex-col">
-      <div className="mb-2 text-sm font-medium text-muted-foreground">
-        Line Items ({lineItems.length})
+    <>
+      <div className="bg-muted/30 p-4 rounded-md h-full flex flex-col">
+        <div className="mb-2 text-sm font-medium text-muted-foreground">
+          Line Items ({lineItems.length})
+        </div>
+        <div className="flex-1 min-h-0">
+          <DataTable
+            data={lineItems}
+            columns={columns}
+            setRowSelection={() => {}}
+            rowSelection={{}}
+            pagination={{ pageIndex: 0, pageSize: lineItems.length }}
+            setPagination={() => {}}
+            totalCount={lineItems.length}
+            isLoading={false}
+            enableGlobalSearch={false}
+            pageSizeOptions={[]}
+          />
+        </div>
       </div>
-      <div className="flex-1 min-h-0">
-        <DataTable
-          data={lineItems}
-          columns={columns}
-          setRowSelection={() => {}}
-          rowSelection={{}}
-          pagination={{ pageIndex: 0, pageSize: lineItems.length }}
-          setPagination={() => {}}
-          totalCount={lineItems.length}
-          isLoading={false}
-          enableGlobalSearch={false}
-          pageSizeOptions={[]}
-        />
-      </div>
-    </div>
+
+      {/* Adjustment Modal */}
+      <AdjustmentModal
+        open={modalOpen}
+        onOpenChange={handleModalClose}
+        lineItem={selectedLineItem}
+        invoiceId={invoiceId}
+        invoiceNumber={invoice?.invoiceNumber || ''}
+        campaignId={invoice?.campaignId || ''}
+        onConfirm={handleSaveAdjustment}
+        isSaving={createChangeLog.isPending || updateAdjustments.isPending || updateInvoiceAmounts.isPending}
+      />
+    </>
   );
 }
 

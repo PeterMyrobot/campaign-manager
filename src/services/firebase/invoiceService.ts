@@ -313,4 +313,115 @@ export const invoiceService = {
     await batch.commit();
     return invoiceRef.id;
   },
+
+  // Add line items to an existing invoice
+  async addLineItems(params: {
+    invoiceId: string;
+    lineItemIds: string[];
+  }): Promise<void> {
+    const batch = writeBatch(db);
+
+    // Get the invoice to verify it exists and get current lineItemIds
+    const invoiceRef = doc(db, COLLECTION_NAME, params.invoiceId);
+    const invoiceSnap = await getDoc(invoiceRef);
+
+    if (!invoiceSnap.exists()) {
+      throw new Error('Invoice not found');
+    }
+
+    const invoiceData = invoiceSnap.data();
+    const currentLineItemIds = invoiceData.lineItemIds || [];
+
+    // Filter out line items that are already in the invoice
+    const newLineItemIds = params.lineItemIds.filter(id => !currentLineItemIds.includes(id));
+
+    if (newLineItemIds.length === 0) {
+      throw new Error('All selected line items are already in this invoice');
+    }
+
+    // Update invoice with new line item IDs
+    batch.update(invoiceRef, {
+      lineItemIds: [...currentLineItemIds, ...newLineItemIds],
+      updatedAt: Timestamp.now(),
+    });
+
+    // Update each new line item with the invoiceId
+    newLineItemIds.forEach(lineItemId => {
+      const lineItemRef = doc(db, 'lineItems', lineItemId);
+      batch.update(lineItemRef, {
+        invoiceId: params.invoiceId,
+        updatedAt: Timestamp.now(),
+      });
+    });
+
+    await batch.commit();
+  },
+
+  // Move line items from one invoice to another
+  async moveLineItems(params: {
+    fromInvoiceId: string;
+    toInvoiceId: string;
+    lineItemIds: string[];
+  }): Promise<void> {
+    const batch = writeBatch(db);
+
+    // Get both invoices to verify they exist
+    const fromInvoiceRef = doc(db, COLLECTION_NAME, params.fromInvoiceId);
+    const toInvoiceRef = doc(db, COLLECTION_NAME, params.toInvoiceId);
+
+    const [fromInvoiceSnap, toInvoiceSnap] = await Promise.all([
+      getDoc(fromInvoiceRef),
+      getDoc(toInvoiceRef),
+    ]);
+
+    if (!fromInvoiceSnap.exists()) {
+      throw new Error('Source invoice not found');
+    }
+
+    if (!toInvoiceSnap.exists()) {
+      throw new Error('Destination invoice not found');
+    }
+
+    const fromInvoiceData = fromInvoiceSnap.data();
+    const toInvoiceData = toInvoiceSnap.data();
+
+    const fromLineItemIds = fromInvoiceData.lineItemIds || [];
+    const toLineItemIds = toInvoiceData.lineItemIds || [];
+
+    // Verify all line items are in the source invoice
+    const invalidItems = params.lineItemIds.filter(id => !fromLineItemIds.includes(id));
+    if (invalidItems.length > 0) {
+      throw new Error('Some line items are not in the source invoice');
+    }
+
+    // Check if any items are already in destination
+    const duplicates = params.lineItemIds.filter(id => toLineItemIds.includes(id));
+    if (duplicates.length > 0) {
+      throw new Error('Some line items are already in the destination invoice');
+    }
+
+    // Remove line items from source invoice
+    const newFromLineItemIds = fromLineItemIds.filter(id => !params.lineItemIds.includes(id));
+    batch.update(fromInvoiceRef, {
+      lineItemIds: newFromLineItemIds,
+      updatedAt: Timestamp.now(),
+    });
+
+    // Add line items to destination invoice
+    batch.update(toInvoiceRef, {
+      lineItemIds: [...toLineItemIds, ...params.lineItemIds],
+      updatedAt: Timestamp.now(),
+    });
+
+    // Update each line item's invoiceId
+    params.lineItemIds.forEach(lineItemId => {
+      const lineItemRef = doc(db, 'lineItems', lineItemId);
+      batch.update(lineItemRef, {
+        invoiceId: params.toInvoiceId,
+        updatedAt: Timestamp.now(),
+      });
+    });
+
+    await batch.commit();
+  },
 }

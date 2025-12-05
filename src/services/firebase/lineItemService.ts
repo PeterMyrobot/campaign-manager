@@ -45,7 +45,12 @@ export const lineItemService = {
     }
 
     if (filters?.invoiceId) {
-      constraints.push(where('invoiceId', '==', filters.invoiceId));
+      if (filters.invoiceId === 'not-invoiced') {
+        // Filter for line items without an invoiceId
+        constraints.push(where('invoiceId', '==', null));
+      } else {
+        constraints.push(where('invoiceId', '==', filters.invoiceId));
+      }
     }
 
     // Date range filter for createdAt
@@ -75,7 +80,12 @@ export const lineItemService = {
     }
 
     if (filters.invoiceId) {
-      constraints.push(where('invoiceId', '==', filters.invoiceId));
+      if (filters.invoiceId === 'not-invoiced') {
+        // Filter for line items without an invoiceId
+        constraints.push(where('invoiceId', '==', null));
+      } else {
+        constraints.push(where('invoiceId', '==', filters.invoiceId));
+      }
     }
 
     // Date range filter for createdAt

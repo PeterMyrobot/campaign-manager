@@ -17,12 +17,14 @@ import {
 import { FilterBadge } from '@/components/FilterBadge'
 import { BulkActionToolbar } from '@/components/BulkActionToolbar'
 import { CreateInvoiceDialog } from '@/components/CreateInvoiceDialog'
+import { AddToInvoiceDialog } from '@/components/AddToInvoiceDialog'
+import { MoveToInvoiceDialog } from '@/components/MoveToInvoiceDialog'
 import DataTable from '@/components/DataTable'
 import { exportToCsv } from '@/lib/exportToCsv'
-import { useCreateInvoiceFromLineItems } from '@/hooks/useInvoices'
+import { useCreateInvoiceFromLineItems, useAddLineItemsToInvoice, useMoveLineItemsToInvoice } from '@/hooks/useInvoices'
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { Filter, Download, FileText } from 'lucide-react'
+import { Filter, Download, FileText, FolderPlus, ArrowRightLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import type { LineItemFilters, LineItem } from '@/types/lineItem'
 import type { RowSelectionState, Row, Table } from '@tanstack/react-table'
@@ -163,6 +165,8 @@ function LineItems() {
   const { invoices } = useInvoicesContext()
   const [searchParams, setSearchParams] = useSearchParams()
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [showAddToInvoiceDialog, setShowAddToInvoiceDialog] = useState(false)
+  const [showMoveToInvoiceDialog, setShowMoveToInvoiceDialog] = useState(false)
 
   // Get filters from URL params
   const campaignIdFromUrl = searchParams.get('campaignId') || undefined
@@ -181,6 +185,12 @@ function LineItems() {
 
   // Create invoice mutation
   const createInvoice = useCreateInvoiceFromLineItems()
+
+  // Add to invoice mutation
+  const addToInvoice = useAddLineItemsToInvoice()
+
+  // Move to invoice mutation
+  const moveToInvoice = useMoveLineItemsToInvoice()
 
   // Fetch line items with pagination
   const { data: response, isLoading } = useLineItems({
@@ -364,6 +374,134 @@ function LineItems() {
       console.error('Failed to create invoice:', error);
       toast.error('Failed to create invoice', {
         description: 'Please try again or contact support if the problem persists',
+      });
+    }
+  };
+
+  // Validation for adding to invoice
+  const canAddToInvoice = useMemo(() => {
+    if (selectedLineItems.length === 0) {
+      return { valid: false, error: 'No line items selected' };
+    }
+
+    // Check if all line items are from the same campaign
+    const campaignIds = new Set(selectedLineItems.map(item => item.campaignId));
+    if (campaignIds.size > 1) {
+      return { valid: false, error: 'Line items must be from the same campaign' };
+    }
+
+    // Check if any line items are already on an invoice
+    const alreadyInvoiced = selectedLineItems.filter(item => item.invoiceId);
+    if (alreadyInvoiced.length > 0) {
+      return { valid: false, error: `${alreadyInvoiced.length} line item${alreadyInvoiced.length > 1 ? 's are' : ' is'} already on an invoice` };
+    }
+
+    return { valid: true, error: null };
+  }, [selectedLineItems]);
+
+  const handleAddToInvoice = () => {
+    if (!canAddToInvoice.valid) {
+      toast.error('Cannot add to invoice', {
+        description: canAddToInvoice.error!,
+      });
+      return;
+    }
+
+    setShowAddToInvoiceDialog(true);
+  };
+
+  const handleConfirmAddToInvoice = async (invoiceId: string) => {
+    if (selectedLineItems.length === 0) return;
+
+    try {
+      await addToInvoice.mutateAsync({
+        invoiceId,
+        lineItemIds: selectedLineItems.map(item => item.id),
+      });
+
+      setShowAddToInvoiceDialog(false);
+      setRowSelection({});
+
+      toast.success('Line items added to invoice', {
+        description: `Successfully added ${selectedLineItems.length} line item${selectedLineItems.length > 1 ? 's' : ''} to invoice`,
+      });
+
+      // Navigate to the invoice
+      navigate(`/invoices/${invoiceId}`);
+    } catch (error) {
+      console.error('Failed to add to invoice:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to add to invoice', {
+        description: errorMessage,
+      });
+    }
+  };
+
+  // Validation for moving to invoice
+  const canMoveToInvoice = useMemo(() => {
+    if (selectedLineItems.length === 0) {
+      return { valid: false, error: 'No line items selected' };
+    }
+
+    // Check if all line items are from the same campaign
+    const campaignIds = new Set(selectedLineItems.map(item => item.campaignId));
+    if (campaignIds.size > 1) {
+      return { valid: false, error: 'Line items must be from the same campaign' };
+    }
+
+    // Check if all line items are on an invoice
+    const notInvoiced = selectedLineItems.filter(item => !item.invoiceId);
+    if (notInvoiced.length > 0) {
+      return { valid: false, error: `${notInvoiced.length} line item${notInvoiced.length > 1 ? 's are' : ' is'} not on any invoice` };
+    }
+
+    // Check if all line items are from the same invoice
+    const invoiceIds = new Set(selectedLineItems.map(item => item.invoiceId));
+    if (invoiceIds.size > 1) {
+      return { valid: false, error: 'Line items must all be from the same invoice' };
+    }
+
+    return { valid: true, error: null };
+  }, [selectedLineItems]);
+
+  const handleMoveToInvoice = () => {
+    if (!canMoveToInvoice.valid) {
+      toast.error('Cannot move to invoice', {
+        description: canMoveToInvoice.error!,
+      });
+      return;
+    }
+
+    setShowMoveToInvoiceDialog(true);
+  };
+
+  const handleConfirmMoveToInvoice = async (toInvoiceId: string) => {
+    if (selectedLineItems.length === 0) return;
+
+    const fromInvoiceId = selectedLineItems[0].invoiceId;
+    if (!fromInvoiceId) return;
+
+    try {
+      await moveToInvoice.mutateAsync({
+        fromInvoiceId,
+        toInvoiceId,
+        lineItemIds: selectedLineItems.map(item => item.id),
+      });
+
+      setShowMoveToInvoiceDialog(false);
+      setRowSelection({});
+
+      toast.success('Line items moved to invoice', {
+        description: `Successfully moved ${selectedLineItems.length} line item${selectedLineItems.length > 1 ? 's' : ''} to invoice`,
+      });
+
+      // Navigate to the destination invoice
+      navigate(`/invoices/${toInvoiceId}`);
+    } catch (error) {
+      console.error('Failed to move to invoice:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to move to invoice', {
+        description: errorMessage,
       });
     }
   };
@@ -554,6 +692,18 @@ function LineItems() {
             variant: 'default',
           },
           {
+            label: 'Add to Invoice',
+            icon: <FolderPlus className="mr-2 h-4 w-4" />,
+            onClick: handleAddToInvoice,
+            variant: 'default',
+          },
+          {
+            label: 'Move to Invoice',
+            icon: <ArrowRightLeft className="mr-2 h-4 w-4" />,
+            onClick: handleMoveToInvoice,
+            variant: 'default',
+          },
+          {
             label: 'Export CSV',
             icon: <Download className="mr-2 h-4 w-4" />,
             onClick: handleBulkExport,
@@ -568,6 +718,24 @@ function LineItems() {
         lineItems={selectedLineItems}
         onConfirm={handleConfirmCreateInvoice}
         isCreating={createInvoice.isPending}
+      />
+
+      <AddToInvoiceDialog
+        open={showAddToInvoiceDialog}
+        onOpenChange={setShowAddToInvoiceDialog}
+        lineItems={selectedLineItems}
+        invoices={invoices}
+        onConfirm={handleConfirmAddToInvoice}
+        isAdding={addToInvoice.isPending}
+      />
+
+      <MoveToInvoiceDialog
+        open={showMoveToInvoiceDialog}
+        onOpenChange={setShowMoveToInvoiceDialog}
+        lineItems={selectedLineItems}
+        invoices={invoices}
+        onConfirm={handleConfirmMoveToInvoice}
+        isMoving={moveToInvoice.isPending}
       />
     </div>
   )
