@@ -57,6 +57,111 @@ function randomDate(start: Date, end: Date): Date {
   return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 }
 
+// Type for collecting change log seed data
+interface ChangeLogSeedEntry {
+  lineItemId: string;
+  lineItemName: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  campaignId: string;
+  currentAdjustment: number;
+  bookedAmount: number;
+  actualAmount: number;
+  createdAt: Date;
+}
+
+// Seed change logs with realistic history
+async function seedChangeLogs(entries: ChangeLogSeedEntry[]): Promise<void> {
+  console.log('Seeding change logs...');
+  let changeLogCount = 0;
+
+  const comments = [
+    'Initial adjustment based on campaign performance',
+    'Client requested discount for early payment',
+    'Corrected for delivery shortfall',
+    'Added bonus for exceeding performance metrics',
+    'Price adjustment per contract amendment',
+    'Removed fee for technical issues',
+    'Volume discount applied',
+    'Credit for underdelivery',
+    'Performance bonus added',
+    'Reconciliation adjustment',
+    'Client negotiated rate change',
+    'Correction from previous billing cycle',
+  ];
+
+  for (const entry of entries) {
+    // Decide if this line item should have change history
+    // 60% chance of having history, 40% no history (forward-only)
+    const shouldHaveHistory = Math.random() < 0.6;
+
+    if (!shouldHaveHistory || entry.currentAdjustment === 0) {
+      continue;
+    }
+
+    // Generate 1-3 historical changes for this line item
+    const numChanges = Math.floor(Math.random() * 3) + 1;
+
+    let currentAmount = entry.currentAdjustment;
+    let changeDate = new Date(entry.createdAt);
+
+    // Work backwards from current to initial
+    const changes: Array<{ previous: number; new: number; timestamp: Date }> = [];
+
+    for (let i = 0; i < numChanges; i++) {
+      const previousAmount =
+        i === numChanges - 1
+          ? 0 // First change starts from 0
+          : currentAmount + (Math.random() * 200 - 100); // Random previous value
+
+      changes.push({
+        previous: previousAmount,
+        new: currentAmount,
+        timestamp: new Date(changeDate),
+      });
+
+      currentAmount = previousAmount;
+      changeDate = new Date(changeDate.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000);
+    }
+
+    // Reverse to go chronological order
+    changes.reverse();
+
+    // Create change log entries
+    for (let i = 0; i < changes.length; i++) {
+      const change = changes[i];
+      const comment = comments[Math.floor(Math.random() * comments.length)];
+
+      await addDoc(collection(db, 'changeLogs'), {
+        entityType: 'line_item',
+        entityId: entry.lineItemId,
+        changeType: i === 0 ? 'adjustment_created' : 'adjustment_updated',
+
+        previousAmount: Math.round(change.previous * 100) / 100,
+        newAmount: Math.round(change.new * 100) / 100,
+        difference: Math.round((change.new - change.previous) * 100) / 100,
+
+        bookedAmountAtTime: entry.bookedAmount,
+        actualAmountAtTime: entry.actualAmount,
+
+        comment: comment,
+        userId: null,
+        userName: 'System',
+        timestamp: Timestamp.fromDate(change.timestamp),
+
+        invoiceId: entry.invoiceId,
+        invoiceNumber: entry.invoiceNumber,
+        campaignId: entry.campaignId,
+        lineItemName: entry.lineItemName,
+      });
+
+      changeLogCount++;
+    }
+  }
+
+  console.log(`📝 Created ${changeLogCount} change log entries`);
+}
+
 // Clear all existing data
 async function clearCollection(collectionName: string): Promise<void> {
   const snapshot = await getDocs(collection(db, collectionName));
@@ -72,6 +177,7 @@ async function clearAllData(): Promise<void> {
   await clearCollection('campaigns');
   await clearCollection('invoices');
   await clearCollection('lineItems');
+  await clearCollection('changeLogs');
   console.log('All existing data cleared.');
 }
 
@@ -105,6 +211,7 @@ async function seedFromPlacements(): Promise<void> {
   let campaignCount = 0;
   let lineItemCount = 0;
   let invoiceCount = 0;
+  const changeLogEntries: ChangeLogSeedEntry[] = [];
 
   for (const [, campaignData] of groupedCampaigns) {
     // Create campaign
@@ -219,13 +326,31 @@ async function seedFromPlacements(): Promise<void> {
       invoiceIds.push(invoiceDocRef.id);
       invoiceCount++;
 
-      // Update line items with invoice ID
+      // Update line items with invoice ID and collect for change log seeding
       for (const lineItemId of invoiceLineItemIds) {
         const lineItemRef = doc(db, 'lineItems', lineItemId);
         await updateDoc(lineItemRef, {
           invoiceId: invoiceDocRef.id,
           updatedAt: Timestamp.now(),
         });
+
+        // Collect line item data for change log seeding
+        const lineItemIndex = lineItemIds.indexOf(lineItemId);
+        if (lineItemIndex !== -1) {
+          const lineItem = campaignData.line_items[lineItemIndex];
+
+          changeLogEntries.push({
+            lineItemId: lineItemId,
+            lineItemName: lineItem.line_item_name,
+            invoiceId: invoiceDocRef.id,
+            invoiceNumber: `INV-${now.getFullYear()}-${String(invoiceCount).padStart(4, '0')}`,
+            campaignId: campaignDocRef.id,
+            currentAdjustment: lineItem.adjustments,
+            bookedAmount: lineItem.booked_amount,
+            actualAmount: lineItem.actual_amount,
+            createdAt: issueDate,
+          });
+        }
       }
     }
 
@@ -244,6 +369,9 @@ async function seedFromPlacements(): Promise<void> {
       );
     }
   }
+
+  // Seed change logs after all entities are created
+  await seedChangeLogs(changeLogEntries);
 
   console.log(`\n✅ Seeding completed!`);
   console.log(
