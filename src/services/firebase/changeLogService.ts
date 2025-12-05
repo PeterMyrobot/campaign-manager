@@ -4,24 +4,14 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
-  limit,
-  startAfter,
   Timestamp,
   type DocumentData,
   type QueryDocumentSnapshot,
-  type QueryConstraint,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { ChangeLogEntry, ChangeLogFilters } from '@/types/changeLog';
+import type { ChangeLogEntry } from '@/types/changeLog';
 
 const COLLECTION_NAME = 'changeLogs';
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  lastDoc?: QueryDocumentSnapshot<DocumentData>;
-  totalCount?: number;
-}
 
 // Helper to convert Firestore document to ChangeLogEntry
 function documentToChangeLogEntry(doc: QueryDocumentSnapshot<DocumentData>): ChangeLogEntry {
@@ -66,157 +56,33 @@ export const changeLogService = {
   },
 
   /**
-   * Get change logs by invoice ID with optional filters
+   * Get change logs by invoice ID
+   * Returns results sorted by timestamp (client-side) to avoid Firebase composite index requirements
    */
-  async getByInvoice(
-    invoiceId: string,
-    filters?: ChangeLogFilters
-  ): Promise<ChangeLogEntry[]> {
-    const constraints: QueryConstraint[] = [
-      where('invoiceId', '==', invoiceId),
-      orderBy('timestamp', 'desc'),
-    ];
-
-    // Add optional filters
-    if (filters?.entityType) {
-      constraints.push(where('entityType', '==', filters.entityType));
-    }
-
-    if (filters?.changeType) {
-      constraints.push(where('changeType', '==', filters.changeType));
-    }
-
-    if (filters?.entityId) {
-      constraints.push(where('entityId', '==', filters.entityId));
-    }
-
-    // Add limit if specified
-    if (filters?.pageSize) {
-      constraints.push(limit(filters.pageSize));
-    }
-
-    const q = query(collection(db, COLLECTION_NAME), ...constraints);
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map(documentToChangeLogEntry);
-  },
-
-  /**
-   * Get change logs by line item ID
-   */
-  async getByLineItem(
-    lineItemId: string,
-    limitCount?: number
-  ): Promise<ChangeLogEntry[]> {
-    const constraints: QueryConstraint[] = [
-      where('entityType', '==', 'line_item'),
-      where('entityId', '==', lineItemId),
-      orderBy('timestamp', 'desc'),
-    ];
-
-    if (limitCount) {
-      constraints.push(limit(limitCount));
-    }
-
-    const q = query(collection(db, COLLECTION_NAME), ...constraints);
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map(documentToChangeLogEntry);
-  },
-
-  /**
-   * Get change logs by campaign ID
-   */
-  async getByCampaign(
-    campaignId: string,
-    filters?: ChangeLogFilters
-  ): Promise<ChangeLogEntry[]> {
-    const constraints: QueryConstraint[] = [
-      where('campaignId', '==', campaignId),
-      orderBy('timestamp', 'desc'),
-    ];
-
-    // Add optional filters
-    if (filters?.entityType) {
-      constraints.push(where('entityType', '==', filters.entityType));
-    }
-
-    if (filters?.changeType) {
-      constraints.push(where('changeType', '==', filters.changeType));
-    }
-
-    // Add limit if specified
-    if (filters?.pageSize) {
-      constraints.push(limit(filters.pageSize));
-    }
-
-    const q = query(collection(db, COLLECTION_NAME), ...constraints);
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map(documentToChangeLogEntry);
-  },
-
-  /**
-   * Get change logs with cursor-based pagination
-   */
-  async getWithCursor(
-    filters: ChangeLogFilters
-  ): Promise<PaginatedResponse<ChangeLogEntry>> {
-    const constraints: QueryConstraint[] = [orderBy('timestamp', 'desc')];
-
-    // Add filters
-    if (filters.invoiceId) {
-      constraints.unshift(where('invoiceId', '==', filters.invoiceId));
-    }
-
-    if (filters.campaignId) {
-      constraints.unshift(where('campaignId', '==', filters.campaignId));
-    }
-
-    if (filters.entityType) {
-      constraints.unshift(where('entityType', '==', filters.entityType));
-    }
-
-    if (filters.entityId) {
-      constraints.unshift(where('entityId', '==', filters.entityId));
-    }
-
-    if (filters.changeType) {
-      constraints.unshift(where('changeType', '==', filters.changeType));
-    }
-
-    // Add cursor pagination
-    if (filters.cursor) {
-      constraints.push(startAfter(filters.cursor));
-    }
-
-    // Add limit
-    const pageSize = filters.pageSize || 20;
-    constraints.push(limit(pageSize));
-
-    const q = query(collection(db, COLLECTION_NAME), ...constraints);
-    const snapshot = await getDocs(q);
-
-    const data = snapshot.docs.map(documentToChangeLogEntry);
-    const lastDoc = snapshot.docs[snapshot.docs.length - 1];
-
-    return {
-      data,
-      lastDoc,
-    };
-  },
-
-  /**
-   * Get recent change logs across all entities
-   */
-  async getRecent(limitCount: number = 10): Promise<ChangeLogEntry[]> {
+  async getByInvoice(invoiceId: string): Promise<ChangeLogEntry[]> {
     const q = query(
       collection(db, COLLECTION_NAME),
-      orderBy('timestamp', 'desc'),
-      limit(limitCount)
+      where('invoiceId', '==', invoiceId)
     );
 
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(documentToChangeLogEntry);
+    const results = snapshot.docs.map(documentToChangeLogEntry);
+
+    // Sort client-side by timestamp descending
+    return results.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  },
+
+  /**
+   * Get all change logs
+   * Returns results sorted by timestamp (client-side) to avoid Firebase composite index requirements
+   */
+  async getAll(): Promise<ChangeLogEntry[]> {
+    const q = query(collection(db, COLLECTION_NAME));
+
+    const snapshot = await getDocs(q);
+    const results = snapshot.docs.map(documentToChangeLogEntry);
+
+    // Sort client-side by timestamp descending
+    return results.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   },
 };

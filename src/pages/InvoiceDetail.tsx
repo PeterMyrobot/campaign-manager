@@ -2,11 +2,13 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useInvoice, useUpdateInvoiceStatus } from '@/hooks/useInvoices';
 import { useCampaignsContext } from '@/contexts/CampaignsContext';
 import InvoiceLineItemsTable from '@/components/InvoiceLineItemsTable';
+import ChangeLogList from '@/components/ChangeLogList';
 import InfoRow from '@/components/InfoRow';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import type { Invoice } from '@/types/invoice';
@@ -138,111 +140,123 @@ function InvoiceDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoice Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <InfoRow
-              label="Campaign:"
-              value={
-                campaign ? (
-                  <Link
-                    to={`/campaigns/${invoice.campaignId}`}
-                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
-                  >
-                    {campaign.name}
-                  </Link>
-                ) : (
-                  <span className="font-medium">{invoice.campaignId}</span>
-                )
-              }
-            />
-            <InfoRow label="Client:" value={invoice.clientName} />
-            <InfoRow label="Email:" value={invoice.clientEmail} />
-            <InfoRow label="Currency:" value={invoice.currency} />
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="overview" className="flex-1 flex flex-col min-h-0">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="history">Change History</TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Financial Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <InfoRow
-              label="Booked Amount:"
-              value={`${invoice.currency} $${invoice.bookedAmount.toLocaleString()}`}
-            />
-            <InfoRow
-              label="Actual Amount:"
-              value={`${invoice.currency} $${invoice.actualAmount.toLocaleString()}`}
-            />
-            <InfoRow
-              label="Adjustments:"
-              value={
-                <span className={`font-medium ${invoice.totalAdjustments < 0 ? 'text-red-600' : invoice.totalAdjustments > 0 ? 'text-green-600' : ''}`}>
-                  {invoice.totalAdjustments < 0 ? '-' : invoice.totalAdjustments > 0 ? '+' : ''}{invoice.currency} ${Math.abs(invoice.totalAdjustments).toLocaleString()}
-                </span>
-              }
-            />
-            <InfoRow
-              label="Difference (Actual - Booked):"
-              value={
-                <span className={`font-semibold ${(invoice.actualAmount - invoice.bookedAmount) < 0 ? 'text-red-600' : (invoice.actualAmount - invoice.bookedAmount) > 0 ? 'text-green-600' : ''}`}>
-                  {(invoice.actualAmount - invoice.bookedAmount) < 0 ? '-' : (invoice.actualAmount - invoice.bookedAmount) > 0 ? '+' : ''}{invoice.currency} ${Math.abs(invoice.actualAmount - invoice.bookedAmount).toLocaleString()}
-                </span>
-              }
-              className="pt-2 border-t"
-            />
-            <InfoRow
-              label="Invoice Total:"
-              value={
-                <span className="text-xl font-bold">
-                  {invoice.currency} ${invoice.totalAmount.toLocaleString()}
-                </span>
-              }
-              className="pt-2 border-t"
-            />
-            <div className="border-t pt-3 mt-3 space-y-2">
-              <InfoRow
-                label="Issue Date:"
-                value={invoice.issueDate?.toLocaleDateString()}
-                icon={<Calendar className="h-4 w-4" />}
-              />
-              <InfoRow
-                label="Due Date:"
-                value={invoice.dueDate?.toLocaleDateString()}
-                icon={<Calendar className="h-4 w-4" />}
-              />
-              {invoice.paidDate && (
+        <TabsContent value="overview" className="mt-6 flex-1 overflow-y-auto space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Invoice Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 <InfoRow
-                  label="Paid Date:"
+                  label="Campaign:"
                   value={
-                    <span className="font-medium text-green-600">
-                      {invoice.paidDate.toLocaleDateString()}
+                    campaign ? (
+                      <Link
+                        to={`/campaigns/${invoice.campaignId}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                      >
+                        {campaign.name}
+                      </Link>
+                    ) : (
+                      <span className="font-medium">{invoice.campaignId}</span>
+                    )
+                  }
+                />
+                <InfoRow label="Client:" value={invoice.clientName} />
+                <InfoRow label="Email:" value={invoice.clientEmail} />
+                <InfoRow label="Currency:" value={invoice.currency} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Financial Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <InfoRow
+                  label="Booked Amount:"
+                  value={`${invoice.currency} $${invoice.bookedAmount.toLocaleString()}`}
+                />
+                <InfoRow
+                  label="Actual Amount:"
+                  value={`${invoice.currency} $${invoice.actualAmount.toLocaleString()}`}
+                />
+                <InfoRow
+                  label="Adjustments:"
+                  value={
+                    <span className={`font-medium ${invoice.totalAdjustments < 0 ? 'text-red-600' : invoice.totalAdjustments > 0 ? 'text-green-600' : ''}`}>
+                      {invoice.totalAdjustments < 0 ? '-' : invoice.totalAdjustments > 0 ? '+' : ''}{invoice.currency} ${Math.abs(invoice.totalAdjustments).toLocaleString()}
                     </span>
                   }
-                  icon={<Calendar className="h-4 w-4" />}
                 />
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                <InfoRow
+                  label="Difference (Actual - Booked):"
+                  value={
+                    <span className={`font-semibold ${(invoice.actualAmount - invoice.bookedAmount) < 0 ? 'text-red-600' : (invoice.actualAmount - invoice.bookedAmount) > 0 ? 'text-green-600' : ''}`}>
+                      {(invoice.actualAmount - invoice.bookedAmount) < 0 ? '-' : (invoice.actualAmount - invoice.bookedAmount) > 0 ? '+' : ''}{invoice.currency} ${Math.abs(invoice.actualAmount - invoice.bookedAmount).toLocaleString()}
+                    </span>
+                  }
+                  className="pt-2 border-t"
+                />
+                <InfoRow
+                  label="Invoice Total:"
+                  value={
+                    <span className="text-xl font-bold">
+                      {invoice.currency} ${invoice.totalAmount.toLocaleString()}
+                    </span>
+                  }
+                  className="pt-2 border-t"
+                />
+                <div className="border-t pt-3 mt-3 space-y-2">
+                  <InfoRow
+                    label="Issue Date:"
+                    value={invoice.issueDate?.toLocaleDateString()}
+                    icon={<Calendar className="h-4 w-4" />}
+                  />
+                  <InfoRow
+                    label="Due Date:"
+                    value={invoice.dueDate?.toLocaleDateString()}
+                    icon={<Calendar className="h-4 w-4" />}
+                  />
+                  {invoice.paidDate && (
+                    <InfoRow
+                      label="Paid Date:"
+                      value={
+                        <span className="font-medium text-green-600">
+                          {invoice.paidDate.toLocaleDateString()}
+                        </span>
+                      }
+                      icon={<Calendar className="h-4 w-4" />}
+                    />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Line Items</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <InvoiceLineItemsTable
-            invoiceId={invoice.id}
-            invoiceStatus={invoice.status}
-          />
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Line Items</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <InvoiceLineItemsTable
+                invoiceId={invoice.id}
+                invoiceStatus={invoice.status}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
+        <TabsContent value="history" className="mt-6 flex-1 overflow-y-auto">
+          <ChangeLogList invoiceId={invoice.id} variant="full" />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

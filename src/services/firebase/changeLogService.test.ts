@@ -12,9 +12,6 @@ vi.mock('firebase/firestore', async () => {
     getDocs: vi.fn(),
     query: vi.fn(),
     where: vi.fn(),
-    orderBy: vi.fn(),
-    limit: vi.fn(),
-    startAfter: vi.fn(),
     Timestamp: {
       fromDate: vi.fn((date: Date) => `Timestamp(${date.toISOString()})`),
       now: vi.fn(() => 'Timestamp(now)'),
@@ -72,7 +69,7 @@ describe('changeLogService', () => {
   });
 
   describe('getByInvoice', () => {
-    it('should fetch change logs by invoice ID', async () => {
+    it('should fetch change logs by invoice ID and sort by timestamp descending', async () => {
       const mockDocs = [
         {
           id: 'log-1',
@@ -94,62 +91,20 @@ describe('changeLogService', () => {
             lineItemName: 'Premium Placement',
           }),
         },
-      ];
-
-      const { getDocs, query, where, orderBy, collection } = await import('firebase/firestore');
-      const { db } = await import('./firebase');
-
-      vi.mocked(getDocs).mockResolvedValue({ docs: mockDocs } as any);
-      vi.mocked(query).mockReturnValue('mock-query' as any);
-      vi.mocked(where).mockReturnValue('mock-where' as any);
-      vi.mocked(orderBy).mockReturnValue('mock-orderBy' as any);
-
-      const result = await changeLogService.getByInvoice('inv-1');
-
-      expect(collection).toHaveBeenCalledWith(db, 'changeLogs');
-      expect(where).toHaveBeenCalledWith('invoiceId', '==', 'inv-1');
-      expect(orderBy).toHaveBeenCalledWith('timestamp', 'desc');
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('log-1');
-      expect(result[0].entityType).toBe('line_item');
-    });
-
-    it('should apply optional filters', async () => {
-      const { getDocs, query, where, limit: limitFn } = await import('firebase/firestore');
-
-      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
-      vi.mocked(query).mockReturnValue('mock-query' as any);
-      vi.mocked(where).mockReturnValue('mock-where' as any);
-      vi.mocked(limitFn).mockReturnValue('mock-limit' as any);
-
-      await changeLogService.getByInvoice('inv-1', {
-        entityType: 'line_item',
-        pageSize: 10,
-      });
-
-      expect(where).toHaveBeenCalledWith('invoiceId', '==', 'inv-1');
-      expect(where).toHaveBeenCalledWith('entityType', '==', 'line_item');
-      expect(limitFn).toHaveBeenCalledWith(10);
-    });
-  });
-
-  describe('getByLineItem', () => {
-    it('should fetch change logs by line item ID', async () => {
-      const mockDocs = [
         {
-          id: 'log-1',
+          id: 'log-2',
           data: () => ({
             entityType: 'line_item',
-            entityId: 'item-1',
+            entityId: 'item-2',
             changeType: 'adjustment_updated',
             previousAmount: -200,
-            newAmount: -350,
-            difference: -150,
+            newAmount: -300,
+            difference: -100,
             bookedAmountAtTime: 10000,
-            actualAmountAtTime: 9500,
-            comment: 'Client requested discount',
+            actualAmountAtTime: 9400,
+            comment: 'Update',
             userName: 'System',
-            timestamp: { toDate: () => new Date('2025-11-10') },
+            timestamp: { toDate: () => new Date('2025-11-20') },
             invoiceId: 'inv-1',
             invoiceNumber: 'INV-001',
             campaignId: 'camp-1',
@@ -158,53 +113,26 @@ describe('changeLogService', () => {
         },
       ];
 
-      const { getDocs, query, where, orderBy } = await import('firebase/firestore');
+      const { getDocs, query, where, collection } = await import('firebase/firestore');
+      const { db } = await import('./firebase');
 
       vi.mocked(getDocs).mockResolvedValue({ docs: mockDocs } as any);
       vi.mocked(query).mockReturnValue('mock-query' as any);
       vi.mocked(where).mockReturnValue('mock-where' as any);
-      vi.mocked(orderBy).mockReturnValue('mock-orderBy' as any);
 
-      const result = await changeLogService.getByLineItem('item-1');
+      const result = await changeLogService.getByInvoice('inv-1');
 
-      expect(where).toHaveBeenCalledWith('entityType', '==', 'line_item');
-      expect(where).toHaveBeenCalledWith('entityId', '==', 'item-1');
-      expect(orderBy).toHaveBeenCalledWith('timestamp', 'desc');
-      expect(result).toHaveLength(1);
-      expect(result[0].difference).toBe(-150);
-    });
-
-    it('should apply limit when provided', async () => {
-      const { getDocs, limit: limitFn } = await import('firebase/firestore');
-
-      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
-      vi.mocked(limitFn).mockReturnValue('mock-limit' as any);
-
-      await changeLogService.getByLineItem('item-1', 5);
-
-      expect(limitFn).toHaveBeenCalledWith(5);
+      expect(collection).toHaveBeenCalledWith(db, 'changeLogs');
+      expect(where).toHaveBeenCalledWith('invoiceId', '==', 'inv-1');
+      expect(result).toHaveLength(2);
+      // Should be sorted by timestamp descending (log-2 before log-1)
+      expect(result[0].id).toBe('log-2');
+      expect(result[1].id).toBe('log-1');
     });
   });
 
-  describe('getByCampaign', () => {
-    it('should fetch change logs by campaign ID', async () => {
-      const { getDocs, query, where, orderBy } = await import('firebase/firestore');
-
-      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
-      vi.mocked(query).mockReturnValue('mock-query' as any);
-      vi.mocked(where).mockReturnValue('mock-where' as any);
-      vi.mocked(orderBy).mockReturnValue('mock-orderBy' as any);
-
-      await changeLogService.getByCampaign('camp-1');
-
-      expect(where).toHaveBeenCalledWith('campaignId', '==', 'camp-1');
-      expect(orderBy).toHaveBeenCalledWith('timestamp', 'desc');
-    });
-  });
-
-  describe('getWithCursor', () => {
-    it('should support cursor-based pagination', async () => {
-      const mockCursor = 'mock-cursor-doc';
+  describe('getAll', () => {
+    it('should fetch all change logs and sort by timestamp descending', async () => {
       const mockDocs = [
         {
           id: 'log-1',
@@ -217,72 +145,49 @@ describe('changeLogService', () => {
             difference: -200,
             bookedAmountAtTime: 10000,
             actualAmountAtTime: 9500,
-            comment: 'Test',
+            comment: 'Test 1',
             userName: 'System',
-            timestamp: { toDate: () => new Date() },
+            timestamp: { toDate: () => new Date('2025-10-15') },
             invoiceId: 'inv-1',
             invoiceNumber: 'INV-001',
             campaignId: 'camp-1',
-            lineItemName: 'Test Item',
+            lineItemName: 'Item 1',
+          }),
+        },
+        {
+          id: 'log-2',
+          data: () => ({
+            entityType: 'invoice',
+            entityId: 'inv-2',
+            changeType: 'status_change',
+            previousAmount: 0,
+            newAmount: 0,
+            difference: 0,
+            bookedAmountAtTime: 5000,
+            actualAmountAtTime: 5000,
+            comment: 'Test 2',
+            userName: 'User',
+            timestamp: { toDate: () => new Date('2025-11-20') },
+            invoiceId: 'inv-2',
+            invoiceNumber: 'INV-002',
+            campaignId: 'camp-2',
           }),
         },
       ];
 
-      const { getDocs, query, startAfter, limit: limitFn, orderBy } = await import('firebase/firestore');
+      const { getDocs, query, collection } = await import('firebase/firestore');
+      const { db } = await import('./firebase');
 
       vi.mocked(getDocs).mockResolvedValue({ docs: mockDocs } as any);
       vi.mocked(query).mockReturnValue('mock-query' as any);
-      vi.mocked(startAfter).mockReturnValue('mock-startAfter' as any);
-      vi.mocked(limitFn).mockReturnValue('mock-limit' as any);
-      vi.mocked(orderBy).mockReturnValue('mock-orderBy' as any);
 
-      const result = await changeLogService.getWithCursor({
-        cursor: mockCursor,
-        pageSize: 20,
-      });
+      const result = await changeLogService.getAll();
 
-      expect(startAfter).toHaveBeenCalledWith(mockCursor);
-      expect(limitFn).toHaveBeenCalledWith(20);
-      expect(result.data).toHaveLength(1);
-      expect(result.lastDoc).toBeDefined();
-    });
-
-    it('should use default page size when not specified', async () => {
-      const { getDocs, limit: limitFn } = await import('firebase/firestore');
-
-      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
-      vi.mocked(limitFn).mockReturnValue('mock-limit' as any);
-
-      await changeLogService.getWithCursor({});
-
-      expect(limitFn).toHaveBeenCalledWith(20);
-    });
-  });
-
-  describe('getRecent', () => {
-    it('should fetch recent change logs', async () => {
-      const { getDocs, query, orderBy, limit: limitFn } = await import('firebase/firestore');
-
-      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
-      vi.mocked(query).mockReturnValue('mock-query' as any);
-      vi.mocked(orderBy).mockReturnValue('mock-orderBy' as any);
-      vi.mocked(limitFn).mockReturnValue('mock-limit' as any);
-
-      await changeLogService.getRecent(10);
-
-      expect(orderBy).toHaveBeenCalledWith('timestamp', 'desc');
-      expect(limitFn).toHaveBeenCalledWith(10);
-    });
-
-    it('should use default limit when not specified', async () => {
-      const { getDocs, limit: limitFn } = await import('firebase/firestore');
-
-      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
-      vi.mocked(limitFn).mockReturnValue('mock-limit' as any);
-
-      await changeLogService.getRecent();
-
-      expect(limitFn).toHaveBeenCalledWith(10);
+      expect(collection).toHaveBeenCalledWith(db, 'changeLogs');
+      expect(result).toHaveLength(2);
+      // Should be sorted by timestamp descending (log-2 before log-1)
+      expect(result[0].id).toBe('log-2');
+      expect(result[1].id).toBe('log-1');
     });
   });
 });
