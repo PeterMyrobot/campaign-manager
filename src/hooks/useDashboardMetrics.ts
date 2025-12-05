@@ -2,8 +2,7 @@ import { useMemo } from 'react';
 import { useInvoices } from './useInvoices';
 import { useCampaigns } from './useCampaigns';
 import { useLineItems } from './useLineItems';
-import type { Invoice } from '@/types/invoice';
-import type { Campaign } from '@/types/campaign';
+
 
 interface DashboardMetrics {
   // Financial metrics
