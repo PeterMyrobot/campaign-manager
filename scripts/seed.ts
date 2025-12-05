@@ -150,7 +150,7 @@ async function seedFromPlacements(): Promise<void> {
 
     // Shuffle line items and only assign 70-80% to invoices (leaving some unassigned)
     const shuffledLineItems = [...lineItemIds].sort(() => Math.random() - 0.5);
-    const assignmentPercentage = 0.7 + Math.random() * 0.1; // 70-80%
+    const assignmentPercentage = 0.5 + Math.random() * 0.1; // 50-60%
     const lineItemsToAssign = shuffledLineItems.slice(
       0,
       Math.floor(shuffledLineItems.length * assignmentPercentage)
