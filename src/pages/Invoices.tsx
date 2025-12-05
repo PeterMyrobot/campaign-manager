@@ -189,12 +189,15 @@ function Invoices() {
   const { campaigns } = useCampaignsContext()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  // Get campaignId from URL params
+  // Get filters from URL params
   const campaignIdFromUrl = searchParams.get('campaignId') || undefined
+  const statusesFromUrl = searchParams.get('statuses')?.split(',').filter(Boolean) ||
+                          (searchParams.get('status') ? [searchParams.get('status')!] : undefined)
 
   // Data filters (non-pagination)
   const [dataFilters, setDataFilters] = useState<Omit<InvoiceFilters, 'page' | 'pageSize' | 'cursor'>>({
     campaignId: campaignIdFromUrl,
+    statuses: statusesFromUrl,
   })
 
   // Cursor-based pagination hook
@@ -241,6 +244,17 @@ function Invoices() {
         searchParams.set('campaignId', updates.campaignId)
       } else {
         searchParams.delete('campaignId')
+      }
+      setSearchParams(searchParams)
+    }
+
+    // Update URL params if statuses changes
+    if ('statuses' in updates) {
+      if (updates.statuses && updates.statuses.length > 0) {
+        searchParams.set('statuses', updates.statuses.join(','))
+      } else {
+        searchParams.delete('statuses')
+        searchParams.delete('status')
       }
       setSearchParams(searchParams)
     }

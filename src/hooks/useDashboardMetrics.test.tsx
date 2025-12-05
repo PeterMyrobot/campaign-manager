@@ -237,9 +237,9 @@ describe('useDashboardMetrics', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // inv-2 has status 'overdue', inv-3 has status 'sent' with past due date
-    expect(result.current.overdueCount).toBe(2);
-    expect(result.current.overdueRevenue).toBe(12600); // 4600 + 8000
+    // inv-2 has status 'overdue'
+    expect(result.current.overdueCount).toBe(1);
+    expect(result.current.overdueRevenue).toBe(4600); // 4600 + 8000
   });
 
   it('should calculate collection rate correctly', async () => {

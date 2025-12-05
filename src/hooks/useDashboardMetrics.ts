@@ -86,7 +86,7 @@ export function useDashboardMetrics(options?: UseDashboardMetricsOptions): Dashb
     const outstandingRevenue = outstandingInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
 
     const overdueInvoices = invoices.filter(inv =>
-      inv.status === 'overdue' || (inv.status === 'sent' && inv.dueDate && inv.dueDate < now)
+      inv.status === 'overdue'
     );
     const overdueRevenue = overdueInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
     const overdueCount = overdueInvoices.length;
