@@ -406,7 +406,7 @@ export const invoiceService = {
     );
 
     // Remove line items from source invoice
-    const newFromLineItemIds = fromLineItemIds.filter(id => !params.lineItemIds.includes(id));
+    const newFromLineItemIds = fromLineItemIds.filter((id: string) => !params.lineItemIds.includes(id));
     batch.update(fromInvoiceRef, {
       lineItemIds: newFromLineItemIds,
       updatedAt: Timestamp.now(),

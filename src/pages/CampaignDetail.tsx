@@ -1,6 +1,7 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useCampaign } from '@/hooks/useCampaigns'
 import { useInvoices } from '@/hooks/useInvoices'
+import InfoRow from '@/components/InfoRow'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -290,41 +291,13 @@ function CampaignDetail() {
               <CardTitle>Campaign Details</CardTitle>
               <CardDescription>Basic information about this campaign</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Campaign ID</span>
-                  <span className="text-sm font-medium">{campaign.id}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Status</span>
-                  <span className="text-sm font-medium capitalize">{campaign.status}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Start Date</span>
-                  <span className="text-sm font-medium">
-                    {campaign.startDate?.toLocaleDateString() || 'Not set'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">End Date</span>
-                  <span className="text-sm font-medium">
-                    {campaign.endDate?.toLocaleDateString() || 'Not set'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Created At</span>
-                  <span className="text-sm font-medium">
-                    {campaign.createdAt?.toLocaleDateString() || 'Unknown'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Updated At</span>
-                  <span className="text-sm font-medium">
-                    {campaign.updatedAt?.toLocaleDateString() || 'Unknown'}
-                  </span>
-                </div>
-              </div>
+            <CardContent className="space-y-3">
+              <InfoRow label="Campaign ID" value={campaign.id} />
+              <InfoRow label="Status" value={<span className="font-medium capitalize">{campaign.status}</span>} />
+              <InfoRow label="Start Date" value={campaign.startDate?.toLocaleDateString() || 'Not set'} />
+              <InfoRow label="End Date" value={campaign.endDate?.toLocaleDateString() || 'Not set'} />
+              <InfoRow label="Created At" value={campaign.createdAt?.toLocaleDateString() || 'Unknown'} />
+              <InfoRow label="Updated At" value={campaign.updatedAt?.toLocaleDateString() || 'Unknown'} />
             </CardContent>
           </Card>
 
@@ -333,40 +306,42 @@ function CampaignDetail() {
               <CardTitle>Financial Summary</CardTitle>
               <CardDescription>Variance and adjustments breakdown</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Booked Amount</span>
-                  <span className="text-sm font-medium">
-                    {financials.currency} ${financials.totalBooked.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Actual Amount</span>
-                  <span className="text-sm font-medium">
-                    {financials.currency} ${financials.totalActual.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pt-2 border-t">
-                  <span className="text-sm text-muted-foreground">Variance</span>
-                  <span className={`text-sm font-semibold ${financials.variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <CardContent className="space-y-3">
+              <InfoRow
+                label="Booked Amount"
+                value={`${financials.currency} $${financials.totalBooked.toLocaleString()}`}
+              />
+              <InfoRow
+                label="Actual Amount"
+                value={`${financials.currency} $${financials.totalActual.toLocaleString()}`}
+              />
+              <InfoRow
+                label="Variance"
+                value={
+                  <span className={`font-semibold ${financials.variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {financials.variance >= 0 ? '+' : ''}{financials.currency} ${Math.abs(financials.variance).toLocaleString()}
                     <span className="text-xs ml-1">({financials.variancePercentage >= 0 ? '+' : ''}{financials.variancePercentage.toFixed(1)}%)</span>
                   </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Total Adjustments</span>
-                  <span className={`text-sm font-medium ${financials.totalAdjustments >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                }
+                className="pt-2 border-t"
+              />
+              <InfoRow
+                label="Total Adjustments"
+                value={
+                  <span className={`font-medium ${financials.totalAdjustments >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {financials.totalAdjustments >= 0 ? '+' : ''}{financials.currency} ${Math.abs(financials.totalAdjustments).toLocaleString()}
                   </span>
-                </div>
-                <div className="flex justify-between items-center pt-2 border-t">
-                  <span className="text-sm text-muted-foreground">Payment Rate</span>
-                  <span className="text-sm font-semibold">
+                }
+              />
+              <InfoRow
+                label="Payment Rate"
+                value={
+                  <span className="font-semibold">
                     {financials.totalRevenue > 0 ? ((financials.totalPaid / financials.totalRevenue) * 100).toFixed(1) : 0}%
                   </span>
-                </div>
-              </div>
+                }
+                className="pt-2 border-t"
+              />
             </CardContent>
           </Card>
         </div>

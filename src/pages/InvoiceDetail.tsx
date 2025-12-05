@@ -2,9 +2,11 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useInvoice, useUpdateInvoiceStatus } from '@/hooks/useInvoices';
 import { useCampaignsContext } from '@/contexts/CampaignsContext';
 import InvoiceLineItemsTable from '@/components/InvoiceLineItemsTable';
+import InfoRow from '@/components/InfoRow';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import type { Invoice } from '@/types/invoice';
@@ -78,7 +80,7 @@ function InvoiceDetail() {
   };
 
   return (
-    <div className="container h-full flex flex-col">
+    <div className="container h-full flex flex-col overflow-y-auto">
       <div className="mb-6">
         <Button
           variant="ghost"
@@ -137,110 +139,110 @@ function InvoiceDetail() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-card border rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">Invoice Details</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Campaign:</span>
-              {campaign ? (
-                <Link
-                  to={`/campaigns/${invoice.campaignId}`}
-                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
-                >
-                  {campaign.name}
-                </Link>
-              ) : (
-                <span className="font-medium">{invoice.campaignId}</span>
-              )}
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Client:</span>
-              <span className="font-medium">{invoice.clientName}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Email:</span>
-              <span className="font-medium">{invoice.clientEmail}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Currency:</span>
-              <span className="font-medium">{invoice.currency}</span>
-            </div>
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Invoice Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <InfoRow
+              label="Campaign:"
+              value={
+                campaign ? (
+                  <Link
+                    to={`/campaigns/${invoice.campaignId}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                  >
+                    {campaign.name}
+                  </Link>
+                ) : (
+                  <span className="font-medium">{invoice.campaignId}</span>
+                )
+              }
+            />
+            <InfoRow label="Client:" value={invoice.clientName} />
+            <InfoRow label="Email:" value={invoice.clientEmail} />
+            <InfoRow label="Currency:" value={invoice.currency} />
+          </CardContent>
+        </Card>
 
-        <div className="bg-card border rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">Financial Summary</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between items-baseline">
-              <span className="text-muted-foreground">Booked Amount:</span>
-              <span className="font-medium">
-                {invoice.currency} ${invoice.bookedAmount.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between items-baseline">
-              <span className="text-muted-foreground">Actual Amount:</span>
-              <span className="font-medium">
-                {invoice.currency} ${invoice.actualAmount.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between items-baseline">
-              <span className="text-muted-foreground">Adjustments:</span>
-              <span className={`font-medium ${invoice.totalAdjustments < 0 ? 'text-red-600' : invoice.totalAdjustments > 0 ? 'text-green-600' : ''}`}>
-                {invoice.totalAdjustments < 0 ? '-' : invoice.totalAdjustments > 0 ? '+' : ''}{invoice.currency} ${Math.abs(invoice.totalAdjustments).toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between items-baseline pt-2 border-t">
-              <span className="text-muted-foreground">Difference (Actual - Booked):</span>
-              <span className={`font-semibold ${(invoice.actualAmount - invoice.bookedAmount) < 0 ? 'text-red-600' : (invoice.actualAmount - invoice.bookedAmount) > 0 ? 'text-green-600' : ''}`}>
-                {(invoice.actualAmount - invoice.bookedAmount) < 0 ? '-' : (invoice.actualAmount - invoice.bookedAmount) > 0 ? '+' : ''}{invoice.currency} ${Math.abs(invoice.actualAmount - invoice.bookedAmount).toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between items-baseline pt-2 border-t">
-              <span className="text-muted-foreground">Invoice Total:</span>
-              <span className="text-xl font-bold">
-                {invoice.currency} ${invoice.totalAmount.toLocaleString()}
-              </span>
-            </div>
-            <div className="border-t pt-3 mt-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Issue Date:
+        <Card>
+          <CardHeader>
+            <CardTitle>Financial Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <InfoRow
+              label="Booked Amount:"
+              value={`${invoice.currency} $${invoice.bookedAmount.toLocaleString()}`}
+            />
+            <InfoRow
+              label="Actual Amount:"
+              value={`${invoice.currency} $${invoice.actualAmount.toLocaleString()}`}
+            />
+            <InfoRow
+              label="Adjustments:"
+              value={
+                <span className={`font-medium ${invoice.totalAdjustments < 0 ? 'text-red-600' : invoice.totalAdjustments > 0 ? 'text-green-600' : ''}`}>
+                  {invoice.totalAdjustments < 0 ? '-' : invoice.totalAdjustments > 0 ? '+' : ''}{invoice.currency} ${Math.abs(invoice.totalAdjustments).toLocaleString()}
                 </span>
-                <span className="font-medium">{invoice.issueDate?.toLocaleDateString()}</span>
-              </div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Due Date:
+              }
+            />
+            <InfoRow
+              label="Difference (Actual - Booked):"
+              value={
+                <span className={`font-semibold ${(invoice.actualAmount - invoice.bookedAmount) < 0 ? 'text-red-600' : (invoice.actualAmount - invoice.bookedAmount) > 0 ? 'text-green-600' : ''}`}>
+                  {(invoice.actualAmount - invoice.bookedAmount) < 0 ? '-' : (invoice.actualAmount - invoice.bookedAmount) > 0 ? '+' : ''}{invoice.currency} ${Math.abs(invoice.actualAmount - invoice.bookedAmount).toLocaleString()}
                 </span>
-                <span className="font-medium">{invoice.dueDate?.toLocaleDateString()}</span>
-              </div>
+              }
+              className="pt-2 border-t"
+            />
+            <InfoRow
+              label="Invoice Total:"
+              value={
+                <span className="text-xl font-bold">
+                  {invoice.currency} ${invoice.totalAmount.toLocaleString()}
+                </span>
+              }
+              className="pt-2 border-t"
+            />
+            <div className="border-t pt-3 mt-3 space-y-2">
+              <InfoRow
+                label="Issue Date:"
+                value={invoice.issueDate?.toLocaleDateString()}
+                icon={<Calendar className="h-4 w-4" />}
+              />
+              <InfoRow
+                label="Due Date:"
+                value={invoice.dueDate?.toLocaleDateString()}
+                icon={<Calendar className="h-4 w-4" />}
+              />
               {invoice.paidDate && (
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Paid Date:
-                  </span>
-                  <span className="font-medium text-green-600">
-                    {invoice.paidDate.toLocaleDateString()}
-                  </span>
-                </div>
+                <InfoRow
+                  label="Paid Date:"
+                  value={
+                    <span className="font-medium text-green-600">
+                      {invoice.paidDate.toLocaleDateString()}
+                    </span>
+                  }
+                  icon={<Calendar className="h-4 w-4" />}
+                />
               )}
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col">
-        <h2 className="text-xl font-semibold mb-4">Line Items</h2>
-        <div className="flex-1 min-h-0">
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Line Items</CardTitle>
+        </CardHeader>
+        <CardContent>
           <InvoiceLineItemsTable
             invoiceId={invoice.id}
             invoiceStatus={invoice.status}
           />
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
