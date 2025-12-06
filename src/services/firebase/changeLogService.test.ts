@@ -30,7 +30,7 @@ describe('changeLogService', () => {
 
   describe('create', () => {
     it('should create a new change log entry', async () => {
-      const { addDoc, collection, Timestamp } = await import('firebase/firestore');
+      const { addDoc, collection } = await import('firebase/firestore');
       const { db } = await import('./firebase');
 
       const mockCollectionRef = 'mock-collection-ref';

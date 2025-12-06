@@ -319,10 +319,11 @@ describe('dateRanges', () => {
         // Even though current time is 14:30, "to" should be midnight
         const result = getDateRangeFromPreset('last7days');
 
-        expect(result?.to.getHours()).toBe(0);
-        expect(result?.to.getMinutes()).toBe(0);
-        expect(result?.to.getSeconds()).toBe(0);
-        expect(result?.to.getMilliseconds()).toBe(0);
+        expect(result?.to).toBeDefined();
+        expect(result?.to?.getHours()).toBe(0);
+        expect(result?.to?.getMinutes()).toBe(0);
+        expect(result?.to?.getSeconds()).toBe(0);
+        expect(result?.to?.getMilliseconds()).toBe(0);
       });
 
       it('should handle year boundaries for last3months', () => {
@@ -331,9 +332,10 @@ describe('dateRanges', () => {
         const result = getDateRangeFromPreset('last3months');
 
         expect(result).toBeDefined();
+        expect(result?.from).toBeDefined();
         // Should go back to October 2023
-        expect(result?.from.getFullYear()).toBe(2023);
-        expect(result?.from.getMonth()).toBe(9); // October (0-indexed)
+        expect(result?.from?.getFullYear()).toBe(2023);
+        expect(result?.from?.getMonth()).toBe(9); // October (0-indexed)
       });
 
       it('should handle year boundaries for last6months', () => {
@@ -342,9 +344,10 @@ describe('dateRanges', () => {
         const result = getDateRangeFromPreset('last6months');
 
         expect(result).toBeDefined();
+        expect(result?.from).toBeDefined();
         // Should go back to August 2023
-        expect(result?.from.getFullYear()).toBe(2023);
-        expect(result?.from.getMonth()).toBe(7); // August (0-indexed)
+        expect(result?.from?.getFullYear()).toBe(2023);
+        expect(result?.from?.getMonth()).toBe(7); // August (0-indexed)
       });
     });
   });
