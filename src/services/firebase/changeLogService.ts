@@ -5,7 +5,6 @@ import {
   getCountFromServer,
   query,
   where,
-  orderBy,
   limit,
   startAfter,
   Timestamp,

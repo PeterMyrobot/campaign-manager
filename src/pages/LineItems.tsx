@@ -510,7 +510,6 @@ function LineItems() {
     <div className='container h-full flex flex-col'>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Line Items</h1>
-
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm">
@@ -548,10 +547,10 @@ function LineItems() {
                       <SelectValue placeholder="All campaigns">
                         {dataFilters.campaignId
                           ? (() => {
-                              const campaign = campaigns.find(c => c.id === dataFilters.campaignId)
-                              const name = campaign?.name || ''
-                              return name.length > 25 ? `${name.slice(0, 25)}...` : name
-                            })()
+                            const campaign = campaigns.find(c => c.id === dataFilters.campaignId)
+                            const name = campaign?.name || ''
+                            return name.length > 25 ? `${name.slice(0, 25)}...` : name
+                          })()
                           : "All campaigns"
                         }
                       </SelectValue>
@@ -598,10 +597,10 @@ function LineItems() {
                       <SelectValue placeholder="All invoices">
                         {dataFilters.invoiceId
                           ? (() => {
-                              const invoice = invoices.find(inv => inv.id === dataFilters.invoiceId)
-                              const number = invoice?.invoiceNumber || ''
-                              return number
-                            })()
+                            const invoice = invoices.find(inv => inv.id === dataFilters.invoiceId)
+                            const number = invoice?.invoiceNumber || ''
+                            return number
+                          })()
                           : "All invoices"
                         }
                       </SelectValue>
