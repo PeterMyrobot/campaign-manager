@@ -211,7 +211,6 @@ async function seedFromPlacements(): Promise<void> {
   let campaignCount = 0;
   let lineItemCount = 0;
   let invoiceCount = 0;
-  const changeLogEntries: ChangeLogSeedEntry[] = [];
 
   for (const [, campaignData] of groupedCampaigns) {
     // Create campaign
@@ -326,31 +325,13 @@ async function seedFromPlacements(): Promise<void> {
       invoiceIds.push(invoiceDocRef.id);
       invoiceCount++;
 
-      // Update line items with invoice ID and collect for change log seeding
+      // Update line items with invoice ID
       for (const lineItemId of invoiceLineItemIds) {
         const lineItemRef = doc(db, 'lineItems', lineItemId);
         await updateDoc(lineItemRef, {
           invoiceId: invoiceDocRef.id,
           updatedAt: Timestamp.now(),
         });
-
-        // Collect line item data for change log seeding
-        const lineItemIndex = lineItemIds.indexOf(lineItemId);
-        if (lineItemIndex !== -1) {
-          const lineItem = campaignData.line_items[lineItemIndex];
-
-          changeLogEntries.push({
-            lineItemId: lineItemId,
-            lineItemName: lineItem.line_item_name,
-            invoiceId: invoiceDocRef.id,
-            invoiceNumber: `INV-${now.getFullYear()}-${String(invoiceCount).padStart(4, '0')}`,
-            campaignId: campaignDocRef.id,
-            currentAdjustment: lineItem.adjustments,
-            bookedAmount: lineItem.booked_amount,
-            actualAmount: lineItem.actual_amount,
-            createdAt: issueDate,
-          });
-        }
       }
     }
 
@@ -370,8 +351,8 @@ async function seedFromPlacements(): Promise<void> {
     }
   }
 
-  // Seed change logs after all entities are created
-  await seedChangeLogs(changeLogEntries);
+  // Skip change log seeding - change logs will be empty initially
+  // await seedChangeLogs(changeLogEntries);
 
   console.log(`\n✅ Seeding completed!`);
   console.log(
