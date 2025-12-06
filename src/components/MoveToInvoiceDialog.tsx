@@ -133,7 +133,7 @@ export function MoveToInvoiceDialog({
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Adjustments:</span>
                 <span className={`font-medium ${totals.adjustments < 0 ? 'text-red-600' :
-                    totals.adjustments > 0 ? 'text-green-600' : ''
+                  totals.adjustments > 0 ? 'text-green-600' : ''
                   }`}>
                   {totals.adjustments < 0 ? '-' : totals.adjustments > 0 ? '+' : ''}
                   ${Math.abs(totals.adjustments).toLocaleString()}
@@ -153,7 +153,7 @@ export function MoveToInvoiceDialog({
             </Label>
             {availableInvoices.length === 0 ? (
               <div className="flex gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
-                <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-medium text-amber-900 dark:text-amber-100">No Invoices Available</p>
                   <p className="text-amber-700 dark:text-amber-300 text-xs mt-1">
@@ -206,7 +206,7 @@ export function MoveToInvoiceDialog({
           {/* Error Message */}
           {error && (
             <div className="flex gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
-              <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
               <p className="text-sm text-destructive">{error}</p>
             </div>
           )}

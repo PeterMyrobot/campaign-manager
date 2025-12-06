@@ -469,4 +469,42 @@ export const invoiceService = {
 
     await Promise.all(changeLogPromises);
   },
+
+  // Remove line items from an invoice (set invoiceId to null)
+  async removeLineItems(params: {
+    invoiceId: string;
+    lineItemIds: string[];
+  }): Promise<void> {
+    const batch = writeBatch(db);
+
+    // Get the invoice to update its lineItemIds
+    const invoiceRef = doc(db, COLLECTION_NAME, params.invoiceId);
+    const invoiceSnap = await getDoc(invoiceRef);
+
+    if (!invoiceSnap.exists()) {
+      throw new Error('Invoice not found');
+    }
+
+    const invoiceData = invoiceSnap.data();
+    const updatedLineItemIds = (invoiceData.lineItemIds || []).filter(
+      (id: string) => !params.lineItemIds.includes(id)
+    );
+
+    // Update invoice's lineItemIds array
+    batch.update(invoiceRef, {
+      lineItemIds: updatedLineItemIds,
+      updatedAt: Timestamp.now(),
+    });
+
+    // Update each line item's invoiceId to null
+    params.lineItemIds.forEach(lineItemId => {
+      const lineItemRef = doc(db, 'lineItems', lineItemId);
+      batch.update(lineItemRef, {
+        invoiceId: null,
+        updatedAt: Timestamp.now(),
+      });
+    });
+
+    await batch.commit();
+  },
 }

@@ -25,7 +25,7 @@ export function FilterBadge({ label, value, onRemove, maxLength = 30 }: FilterBa
       </span>
       <button
         onClick={onRemove}
-        className="ml-1 rounded-sm opacity-70 hover:opacity-100 flex-shrink-0"
+        className="ml-1 rounded-sm opacity-70 hover:opacity-100 shrink-0"
         aria-label={`Remove ${label} filter`}
       >
         <X className="h-3 w-3" />
@@ -41,7 +41,7 @@ export function FilterBadge({ label, value, onRemove, maxLength = 30 }: FilterBa
             {badgeContent}
           </TooltipTrigger>
           <TooltipContent>
-            <p className="max-w-xs break-words">
+            <p className="max-w-xs wrap-break-word">
               <span className="font-medium">{label}:</span> {value}
             </p>
           </TooltipContent>

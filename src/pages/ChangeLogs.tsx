@@ -388,10 +388,10 @@ function ChangeLogs() {
                       <SelectValue placeholder="All campaigns">
                         {dataFilters.campaignId
                           ? (() => {
-                              const campaign = campaigns.find(c => c.id === dataFilters.campaignId)
-                              const name = campaign?.name || ''
-                              return name.length > 25 ? `${name.slice(0, 25)}...` : name
-                            })()
+                            const campaign = campaigns.find(c => c.id === dataFilters.campaignId)
+                            const name = campaign?.name || ''
+                            return name.length > 25 ? `${name.slice(0, 25)}...` : name
+                          })()
                           : "All campaigns"
                         }
                       </SelectValue>
@@ -407,12 +407,12 @@ function ChangeLogs() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <SelectItem value={campaign.id} className="cursor-pointer">
-                                  <span className="block truncate max-w-[240px]">{displayName}</span>
+                                  <span className="block truncate max-w-60">{displayName}</span>
                                 </SelectItem>
                               </TooltipTrigger>
                               {isLong && (
                                 <TooltipContent side="left" className="max-w-xs">
-                                  <p className="break-words">{campaign.name}</p>
+                                  <p className="wrap-break-word">{campaign.name}</p>
                                 </TooltipContent>
                               )}
                             </Tooltip>
@@ -438,9 +438,9 @@ function ChangeLogs() {
                       <SelectValue placeholder="All invoices">
                         {dataFilters.invoiceId
                           ? (() => {
-                              const invoice = invoices.find(inv => inv.id === dataFilters.invoiceId)
-                              return invoice?.invoiceNumber || ''
-                            })()
+                            const invoice = invoices.find(inv => inv.id === dataFilters.invoiceId)
+                            return invoice?.invoiceNumber || ''
+                          })()
                           : "All invoices"
                         }
                       </SelectValue>

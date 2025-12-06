@@ -105,7 +105,7 @@ function ChangeLogEntryComponent({ entry, variant = 'default', showLineItemName 
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
           {/* Icon */}
-          <div className={`${typeInfo.bgColor} p-3 rounded-full ${typeInfo.color} flex-shrink-0`}>
+          <div className={`${typeInfo.bgColor} p-3 rounded-full ${typeInfo.color} shrink-0`}>
             {typeInfo.icon}
           </div>
 
