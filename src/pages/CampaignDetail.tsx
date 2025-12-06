@@ -191,7 +191,7 @@ function CampaignDetail() {
   }
 
   return (
-    <div className="container py-8">
+    <div className="container h-full overflow-y-auto py-8">
       <div className="mb-6">
         <Button
           variant="ghost"
