@@ -17,7 +17,7 @@ import {
 import { FilterBadge } from '@/components/FilterBadge'
 import { BulkActionToolbar } from '@/components/BulkActionToolbar'
 import DataTable from '@/components/DataTable'
-import InvoiceLineItemsTable from '@/components/InvoiceLineItemsTable'
+import BaseLineItemsTable from '@/components/BaseLineItemsTable'
 import { exportToCsv } from '@/lib/exportToCsv'
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -192,7 +192,7 @@ function Invoices() {
   // Get filters from URL params
   const campaignIdFromUrl = searchParams.get('campaignId') || undefined
   const statusesFromUrl = searchParams.get('statuses')?.split(',').filter(Boolean) ||
-                          (searchParams.get('status') ? [searchParams.get('status')!] : undefined)
+    (searchParams.get('status') ? [searchParams.get('status')!] : undefined)
 
   // Data filters (non-pagination)
   const [dataFilters, setDataFilters] = useState<Omit<InvoiceFilters, 'page' | 'pageSize' | 'cursor'>>({
@@ -389,10 +389,10 @@ function Invoices() {
                       <SelectValue placeholder="All campaigns">
                         {dataFilters.campaignId
                           ? (() => {
-                              const campaign = campaigns.find(c => c.id === dataFilters.campaignId)
-                              const name = campaign?.name || ''
-                              return name.length > 25 ? `${name.slice(0, 25)}...` : name
-                            })()
+                            const campaign = campaigns.find(c => c.id === dataFilters.campaignId)
+                            const name = campaign?.name || ''
+                            return name.length > 25 ? `${name.slice(0, 25)}...` : name
+                          })()
                           : "All campaigns"
                         }
                       </SelectValue>
@@ -408,12 +408,12 @@ function Invoices() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <SelectItem value={campaign.id} className="cursor-pointer">
-                                  <span className="block truncate max-w-[240px]">{displayName}</span>
+                                  <span className="block truncate max-w-60">{displayName}</span>
                                 </SelectItem>
                               </TooltipTrigger>
                               {isLong && (
                                 <TooltipContent side="left" className="max-w-xs">
-                                  <p className="break-words">{campaign.name}</p>
+                                  <p className="wrap-break-word">{campaign.name}</p>
                                 </TooltipContent>
                               )}
                             </Tooltip>
@@ -569,7 +569,8 @@ function Invoices() {
           expanded={expanded}
           setExpanded={setExpanded}
           renderSubRow={(row) => (
-            <InvoiceLineItemsTable
+            <BaseLineItemsTable
+              mode="invoice"
               invoiceId={row.original.id}
               invoiceStatus={row.original.status}
             />

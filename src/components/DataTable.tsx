@@ -175,92 +175,94 @@ function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between px-2 py-4">
-        <Pagination className="mx-0 w-auto">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault()
-                  if (pagination.pageIndex > 0) {
-                    table.previousPage()
+      {pageSizeOptions.length > 0 &&
+        <div className="flex items-center justify-between px-2 py-4">
+          <Pagination className="mx-0 w-auto">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (pagination.pageIndex > 0) {
+                      table.previousPage()
+                    }
+                  }}
+                  aria-disabled={isLoading || pagination.pageIndex === 0}
+                  className={
+                    isLoading || pagination.pageIndex === 0
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
                   }
-                }}
-                aria-disabled={isLoading || pagination.pageIndex === 0}
-                className={
-                  isLoading || pagination.pageIndex === 0
-                    ? "pointer-events-none opacity-50"
-                    : "cursor-pointer"
-                }
-              />
-            </PaginationItem>
+                />
+              </PaginationItem>
 
-            <PaginationItem>
-              <div className="flex items-center justify-center min-w-[100px] text-sm font-medium">
-                Page {pagination.pageIndex + 1} {pageCount > 0 && `of ${pageCount}`}
-              </div>
-            </PaginationItem>
+              <PaginationItem>
+                <div className="flex items-center justify-center min-w-[100px] text-sm font-medium">
+                  Page {pagination.pageIndex + 1} {pageCount > 0 && `of ${pageCount}`}
+                </div>
+              </PaginationItem>
 
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault()
-                  if (totalCount !== undefined && pagination.pageIndex < pageCount - 1) {
-                    table.nextPage()
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (totalCount !== undefined && pagination.pageIndex < pageCount - 1) {
+                      table.nextPage()
+                    }
+                  }}
+                  aria-disabled={isLoading || (totalCount !== undefined && pagination.pageIndex >= pageCount - 1)}
+                  className={
+                    isLoading || (totalCount !== undefined && pagination.pageIndex >= pageCount - 1)
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
                   }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              {totalCount !== undefined ? (
+                <>
+                  Showing {pagination.pageIndex * pagination.pageSize + 1} to{' '}
+                  {Math.min((pagination.pageIndex + 1) * pagination.pageSize, totalCount)} of{' '}
+                  {totalCount} results
+                </>
+              ) : (
+                <>
+                  {table.getFilteredSelectedRowModel().rows.length} of{' '}
+                  {table.getFilteredRowModel().rows.length} row(s) selected
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Per page:</span>
+              <Select
+                value={pagination.pageSize.toString()}
+                onValueChange={(value) => {
+                  setPagination({
+                    pageIndex: 0,
+                    pageSize: parseInt(value),
+                  })
                 }}
-                aria-disabled={isLoading || (totalCount !== undefined && pagination.pageIndex >= pageCount - 1)}
-                className={
-                  isLoading || (totalCount !== undefined && pagination.pageIndex >= pageCount - 1)
-                    ? "pointer-events-none opacity-50"
-                    : "cursor-pointer"
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-muted-foreground">
-            {totalCount !== undefined ? (
-              <>
-                Showing {pagination.pageIndex * pagination.pageSize + 1} to{' '}
-                {Math.min((pagination.pageIndex + 1) * pagination.pageSize, totalCount)} of{' '}
-                {totalCount} results
-              </>
-            ) : (
-              <>
-                {table.getFilteredSelectedRowModel().rows.length} of{' '}
-                {table.getFilteredRowModel().rows.length} row(s) selected
-              </>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Per page:</span>
-            <Select
-              value={pagination.pageSize.toString()}
-              onValueChange={(value) => {
-                setPagination({
-                  pageIndex: 0,
-                  pageSize: parseInt(value),
-                })
-              }}
-            >
-              <SelectTrigger className="w-[100px]" size="sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {pageSizeOptions.map((size) => (
-                  <SelectItem key={size} value={size.toString()}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              >
+                <SelectTrigger className="w-[100px]" size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {pageSizeOptions.map((size) => (
+                    <SelectItem key={size} value={size.toString()}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
-      </div>
+      }
     </div>
   )
 }

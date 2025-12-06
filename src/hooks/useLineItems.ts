@@ -19,10 +19,11 @@ export function useLineItem(id: string | undefined) {
 }
 
 // Hook to get line item count with filters
-export function useLineItemCount(filters?: Omit<LineItemFilters, 'page' | 'pageSize' | 'cursor'>) {
+export function useLineItemCount(filters?: Omit<LineItemFilters, 'page' | 'pageSize' | 'cursor'>, options?: { enabled?: boolean }) {
   return useQuery<number>({
     queryKey: ['lineItems', 'count', filters],
     queryFn: () => lineItemService.getTotalCount(filters),
+    enabled: options?.enabled,
   });
 }
 

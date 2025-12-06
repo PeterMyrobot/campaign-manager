@@ -1,57 +1,22 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useInvoice, useUpdateInvoiceStatus } from '@/hooks/useInvoices';
+import { useInvoice } from '@/hooks/useInvoices';
 import { useCampaignsContext } from '@/contexts/CampaignsContext';
-import InvoiceLineItemsTable from '@/components/InvoiceLineItemsTable';
+import BaseLineItemsTable from '@/components/BaseLineItemsTable';
 import ChangeLogList from '@/components/ChangeLogList';
 import InfoRow from '@/components/InfoRow';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Calendar } from 'lucide-react';
-import { useState } from 'react';
-import type { Invoice } from '@/types/invoice';
-
-const STATUS_OPTIONS = [
-  { label: 'Draft', value: 'draft' },
-  { label: 'Sent', value: 'sent' },
-  { label: 'Paid', value: 'paid' },
-  { label: 'Overdue', value: 'overdue' },
-  { label: 'Cancelled', value: 'cancelled' },
-];
 
 function InvoiceDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: invoice, isLoading } = useInvoice(id);
   const { campaigns } = useCampaignsContext();
-  const updateStatus = useUpdateInvoiceStatus();
-
-  const [selectedStatus, setSelectedStatus] = useState<Invoice['status'] | ''>('');
-  const [isUpdating, setIsUpdating] = useState(false);
 
   const campaign = campaigns.find(c => c.id === invoice?.campaignId);
-
-  const handleStatusChange = async (newStatus: Invoice['status']) => {
-    if (!invoice || !id) return;
-
-    setIsUpdating(true);
-    try {
-      const paidDate = newStatus === 'paid' ? new Date() : null;
-      await updateStatus.mutateAsync({
-        id,
-        status: newStatus,
-        paidDate,
-      });
-      setSelectedStatus('');
-    } catch (error) {
-      console.error('Failed to update status:', error);
-      alert('Failed to update invoice status. Please try again.');
-    } finally {
-      setIsUpdating(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -101,41 +66,6 @@ function InvoiceDetail() {
                 <span className="capitalize">{invoice.status}</span>
               </Badge>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Select
-              value={selectedStatus}
-              onValueChange={(value) => setSelectedStatus(value as Invoice['status'])}
-              disabled={isUpdating}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Change status..." />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.filter(opt => opt.value !== invoice.status).map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {selectedStatus && (
-              <Button
-                onClick={() => handleStatusChange(selectedStatus as Invoice['status'])}
-                disabled={isUpdating}
-              >
-                {isUpdating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Updating...
-                  </>
-                ) : (
-                  'Update Status'
-                )}
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -245,9 +175,11 @@ function InvoiceDetail() {
               <CardTitle>Line Items</CardTitle>
             </CardHeader>
             <CardContent>
-              <InvoiceLineItemsTable
+              <BaseLineItemsTable
+                mode="invoice"
                 invoiceId={invoice.id}
                 invoiceStatus={invoice.status}
+                compact
               />
             </CardContent>
           </Card>

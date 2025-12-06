@@ -10,19 +10,20 @@ export function useInvoices(filters?: InvoiceFilters) {
 }
 
 // Hook to get a single invoice by ID
-export function useInvoice(id: string | undefined) {
+export function useInvoice(id: string | undefined, options?: { enabled?: boolean }) {
   return useQuery<Invoice | null>({
     queryKey: ['invoices', id],
     queryFn: () => id ? invoiceService.getById(id) : Promise.resolve(null),
-    enabled: !!id,
+    enabled: options?.enabled !== undefined ? options.enabled : !!id,
   });
 }
 
 // Hook to get invoice count with filters
-export function useInvoiceCount(filters?: Omit<InvoiceFilters, 'page' | 'pageSize' | 'cursor'>) {
+export function useInvoiceCount(filters?: Omit<InvoiceFilters, 'page' | 'pageSize' | 'cursor'>, options?: { enabled?: boolean }) {
   return useQuery<number>({
     queryKey: ['invoices', 'count', filters],
     queryFn: () => invoiceService.getTotalCount(filters),
+    enabled: options?.enabled,
   });
 }
 
@@ -119,6 +120,23 @@ export function useMoveLineItemsToInvoice() {
       toInvoiceId: string;
       lineItemIds: string[];
     }) => invoiceService.moveLineItems(params),
+    onSuccess: () => {
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+    },
+  });
+}
+
+// Hook to remove line items from an invoice (set invoiceId to null)
+export function useRemoveLineItemsFromInvoice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: {
+      invoiceId: string;
+      lineItemIds: string[];
+    }) => invoiceService.removeLineItems(params),
     onSuccess: () => {
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
