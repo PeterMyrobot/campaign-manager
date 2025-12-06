@@ -18,9 +18,6 @@ interface AdjustmentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lineItem: LineItem | null;
-  invoiceId: string;
-  invoiceNumber: string;
-  campaignId: string;
   onConfirm: (data: {
     newAdjustment: number;
     comment: string;
@@ -32,9 +29,6 @@ export function AdjustmentModal({
   open,
   onOpenChange,
   lineItem,
-  invoiceId,
-  invoiceNumber,
-  campaignId,
   onConfirm,
   isSaving = false,
 }: AdjustmentModalProps) {
@@ -121,7 +115,7 @@ export function AdjustmentModal({
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Current Adjustment:</span>
                 <span className={`font-medium ${lineItem.adjustments < 0 ? 'text-red-600' :
-                    lineItem.adjustments > 0 ? 'text-green-600' : ''
+                  lineItem.adjustments > 0 ? 'text-green-600' : ''
                   }`}>
                   {lineItem.adjustments < 0 ? '-' : lineItem.adjustments > 0 ? '+' : ''}
                   ${Math.abs(lineItem.adjustments).toLocaleString()}
@@ -168,8 +162,8 @@ export function AdjustmentModal({
               <div className="flex justify-between items-center text-sm mt-1">
                 <span className="text-muted-foreground">Change:</span>
                 <span className={`font-semibold ${difference < 0 ? 'text-red-600' :
-                    difference > 0 ? 'text-green-600' :
-                      'text-muted-foreground'
+                  difference > 0 ? 'text-green-600' :
+                    'text-muted-foreground'
                   }`}>
                   {difference < 0 ? '-' : difference > 0 ? '+' : ''}
                   ${Math.abs(difference).toLocaleString()}

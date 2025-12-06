@@ -176,7 +176,7 @@ function DataTable<TData, TValue>({
         </Table>
       </div>
       {pageSizeOptions.length > 0 &&
-        <div className="flex items-center justify-between px-2 py-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4">
           <Pagination className="mx-0 w-auto">
             <PaginationContent>
               <PaginationItem>
@@ -222,8 +222,8 @@ function DataTable<TData, TValue>({
               </PaginationItem>
             </PaginationContent>
           </Pagination>
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+            <div className="text-sm text-muted-foreground whitespace-nowrap">
               {totalCount !== undefined ? (
                 <>
                   Showing {pagination.pageIndex * pagination.pageSize + 1} to{' '}

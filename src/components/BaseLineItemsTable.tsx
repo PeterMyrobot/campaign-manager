@@ -697,19 +697,19 @@ function BaseLineItemsTable({
 
     const columns = mode === 'global'
       ? [
-          { key: 'name' as const, header: 'Line Item Name' },
-          { key: 'campaignId' as const, header: 'Campaign' },
-          { key: 'bookedAmount' as const, header: 'Booked Amount' },
-          { key: 'actualAmount' as const, header: 'Actual Amount' },
-          { key: 'adjustments' as const, header: 'Adjustments' },
-          { key: 'createdAt' as const, header: 'Created At' },
-        ]
+        { key: 'name' as const, header: 'Line Item Name' },
+        { key: 'campaignId' as const, header: 'Campaign' },
+        { key: 'bookedAmount' as const, header: 'Booked Amount' },
+        { key: 'actualAmount' as const, header: 'Actual Amount' },
+        { key: 'adjustments' as const, header: 'Adjustments' },
+        { key: 'createdAt' as const, header: 'Created At' },
+      ]
       : [
-          { key: 'name' as const, header: 'Line Item Name' },
-          { key: 'bookedAmount' as const, header: 'Booked Amount' },
-          { key: 'actualAmount' as const, header: 'Actual Amount' },
-          { key: 'adjustments' as const, header: 'Adjustments' },
-        ]
+        { key: 'name' as const, header: 'Line Item Name' },
+        { key: 'bookedAmount' as const, header: 'Booked Amount' },
+        { key: 'actualAmount' as const, header: 'Actual Amount' },
+        { key: 'adjustments' as const, header: 'Adjustments' },
+      ]
 
     exportToCsv(
       selectedLineItems,
@@ -909,7 +909,8 @@ function BaseLineItemsTable({
       {showFilters && mode === 'global' && (
         <div className="mb-4 space-y-4">
           {/* Filter Button */}
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold">Line Items</h1>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -1065,20 +1066,21 @@ function BaseLineItemsTable({
           )}
         </div>
       )}
-
-      <DataTable
-        data={enrichedLineItems}
-        columns={columns}
-        setRowSelection={setRowSelection}
-        rowSelection={rowSelection}
-        pagination={pagination}
-        setPagination={setPagination}
-        totalCount={totalCount}
-        isLoading={isLoading}
-        enableGlobalSearch={mode === 'global'}
-        globalSearchPlaceholder={mode === 'global' ? "Search line items... (searches current page)" : undefined}
-        pageSizeOptions={showPagination ? [1, 5, 10, 20, 50, 100] : []}
-      />
+      <div className='flex-1 min-h-0 overflow-auto'>
+        <DataTable
+          data={enrichedLineItems}
+          columns={columns}
+          setRowSelection={setRowSelection}
+          rowSelection={rowSelection}
+          pagination={pagination}
+          setPagination={setPagination}
+          totalCount={totalCount}
+          isLoading={isLoading}
+          enableGlobalSearch={mode === 'global'}
+          globalSearchPlaceholder={mode === 'global' ? "Search line items... (searches current page)" : undefined}
+          pageSizeOptions={showPagination ? [1, 5, 10, 20, 50, 100] : []}
+        />
+      </div>
 
       {/* Bulk Action Toolbar */}
       <BulkActionToolbar
@@ -1125,9 +1127,6 @@ function BaseLineItemsTable({
             open={showAdjustmentModal}
             onOpenChange={setShowAdjustmentModal}
             lineItem={selectedLineItem}
-            invoiceId={invoice.id}
-            invoiceNumber={invoice.invoiceNumber}
-            campaignId={invoice.campaignId}
             onConfirm={handleSaveAdjustment}
             isSaving={createChangeLog.isPending || updateAdjustments.isPending || updateInvoiceAmounts.isPending}
           />

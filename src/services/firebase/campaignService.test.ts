@@ -134,7 +134,7 @@ describe('campaignService', () => {
     });
 
     it('should call where with startDate when no createdDate', async () => {
-      const { getCountFromServer, query, where, Timestamp } = await import('firebase/firestore');
+      const { getCountFromServer, query, where } = await import('firebase/firestore');
 
       vi.mocked(query).mockReturnValue('mock-query' as any);
       vi.mocked(where).mockReturnValue('mock-constraint' as any);

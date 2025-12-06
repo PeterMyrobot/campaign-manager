@@ -569,11 +569,13 @@ function Invoices() {
           expanded={expanded}
           setExpanded={setExpanded}
           renderSubRow={(row) => (
-            <BaseLineItemsTable
-              mode="invoice"
-              invoiceId={row.original.id}
-              invoiceStatus={row.original.status}
-            />
+            <div className='p-2'>
+              <BaseLineItemsTable
+                mode="invoice"
+                invoiceId={row.original.id}
+                invoiceStatus={row.original.status}
+              />
+            </div>
           )}
           pagination={pagination}
           setPagination={setPagination}
