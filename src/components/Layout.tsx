@@ -13,7 +13,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Home, Megaphone, FileText, Receipt } from 'lucide-react';
+import { Home, Megaphone, FileText, Receipt, History } from 'lucide-react';
 
 const menuItems = [
   {
@@ -35,6 +35,11 @@ const menuItems = [
     title: 'Invoices',
     url: '/invoices',
     icon: Receipt,
+  },
+  {
+    title: 'Change Logs',
+    url: '/change-logs',
+    icon: History,
   },
 ];
 

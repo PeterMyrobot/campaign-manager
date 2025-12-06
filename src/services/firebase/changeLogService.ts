@@ -2,16 +2,27 @@ import {
   collection,
   addDoc,
   getDocs,
+  getCountFromServer,
   query,
   where,
+  orderBy,
+  limit,
+  startAfter,
   Timestamp,
   type DocumentData,
   type QueryDocumentSnapshot,
+  type QueryConstraint,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { ChangeLogEntry } from '@/types/changeLog';
+import type { ChangeLogEntry, ChangeLogFilters } from '@/types/changeLog';
 
 const COLLECTION_NAME = 'changeLogs';
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  lastDoc?: unknown;
+  totalCount?: number;
+}
 
 // Helper to convert Firestore document to ChangeLogEntry
 function documentToChangeLogEntry(doc: QueryDocumentSnapshot<DocumentData>): ChangeLogEntry {
@@ -84,5 +95,120 @@ export const changeLogService = {
 
     // Sort client-side by timestamp descending
     return results.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  },
+
+  /**
+   * Get total count of change logs matching filters
+   */
+  async getTotalCount(filters?: Omit<ChangeLogFilters, 'page' | 'pageSize' | 'cursor'>): Promise<number> {
+    const constraints: QueryConstraint[] = [];
+
+    // Entity type filter
+    if (filters?.entityType) {
+      constraints.push(where('entityType', '==', filters.entityType));
+    }
+
+    // Entity ID filter
+    if (filters?.entityId) {
+      constraints.push(where('entityId', '==', filters.entityId));
+    }
+
+    // Invoice ID filter
+    if (filters?.invoiceId) {
+      constraints.push(where('invoiceId', '==', filters.invoiceId));
+    }
+
+    // Campaign ID filter
+    if (filters?.campaignId) {
+      constraints.push(where('campaignId', '==', filters.campaignId));
+    }
+
+    // Change type filter
+    if (filters?.changeType) {
+      constraints.push(where('changeType', '==', filters.changeType));
+    }
+
+    // Date range filter
+    if (filters?.startDate) {
+      constraints.push(where('timestamp', '>=', Timestamp.fromDate(filters.startDate)));
+    }
+    if (filters?.endDate) {
+      const endOfDay = new Date(filters.endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      constraints.push(where('timestamp', '<=', Timestamp.fromDate(endOfDay)));
+    }
+
+    const q = query(collection(db, COLLECTION_NAME), ...constraints);
+    const snapshot = await getCountFromServer(q);
+
+    return snapshot.data().count;
+  },
+
+  /**
+   * Get change logs via filter with server-side pagination
+   */
+  async getByFilter(filters: ChangeLogFilters): Promise<PaginatedResponse<ChangeLogEntry>> {
+    const constraints: QueryConstraint[] = [];
+
+    // Entity type filter
+    if (filters.entityType) {
+      constraints.push(where('entityType', '==', filters.entityType));
+    }
+
+    // Entity ID filter
+    if (filters.entityId) {
+      constraints.push(where('entityId', '==', filters.entityId));
+    }
+
+    // Invoice ID filter
+    if (filters.invoiceId) {
+      constraints.push(where('invoiceId', '==', filters.invoiceId));
+    }
+
+    // Campaign ID filter
+    if (filters.campaignId) {
+      constraints.push(where('campaignId', '==', filters.campaignId));
+    }
+
+    // Change type filter
+    if (filters.changeType) {
+      constraints.push(where('changeType', '==', filters.changeType));
+    }
+
+    // Date range filter
+    if (filters.startDate) {
+      constraints.push(where('timestamp', '>=', Timestamp.fromDate(filters.startDate)));
+    }
+    if (filters.endDate) {
+      const endOfDay = new Date(filters.endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      constraints.push(where('timestamp', '<=', Timestamp.fromDate(endOfDay)));
+    }
+
+    // Order by timestamp descending
+    // constraints.push(orderBy('timestamp', 'desc'));
+
+    // Pagination
+    const pageSize = filters.pageSize || 50;
+    constraints.push(limit(pageSize));
+
+    // Cursor-based pagination
+    if (filters.cursor) {
+      constraints.push(startAfter(filters.cursor as QueryDocumentSnapshot<DocumentData>));
+    }
+
+    const q = query(collection(db, COLLECTION_NAME), ...constraints);
+    const snapshot = await getDocs(q);
+
+    // Convert Firestore documents to ChangeLogEntry objects
+    const changeLogs = snapshot.docs.map(documentToChangeLogEntry);
+
+    // Get last document for cursor-based pagination
+    const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : undefined;
+
+    return {
+      data: changeLogs,
+      lastDoc,
+    };
   },
 };
