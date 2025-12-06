@@ -186,7 +186,8 @@ async function seedFromPlacements(): Promise<void> {
   console.log('Seeding data from placements file...');
 
   // Limit to first 30 records for testing
-  const limitedData = (placementsData as PlacementData[]).slice(0, 200);
+  // const limitedData = (placementsData as PlacementData[]).slice(0, 30);
+  const limitedData = (placementsData as PlacementData[])
   console.log(`Using first ${limitedData.length} records for testing`);
 
   const groupedCampaigns = groupByCampaign(limitedData);
