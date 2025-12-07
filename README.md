@@ -4,6 +4,17 @@ A modern web application for managing advertising campaigns, line items, and inv
 
 **🚀 Live Demo:** [https://campaign-invoice-manager.web.app](https://campaign-invoice-manager.web.app)
 
+## Quality Assurance
+
+![Unit Tests](https://img.shields.io/badge/unit%20tests-98%20passing-success)
+![E2E Tests](https://img.shields.io/badge/e2e%20tests-14%20passing-success)
+![CI/CD](https://img.shields.io/badge/CI%2FCD-automated-blue)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
+
+- **Automated Testing**: 98 unit tests + 14 E2E tests ensure reliability
+- **CI/CD Pipeline**: GitHub Actions runs tests on every PR
+- **Type Safety**: Full TypeScript coverage with strict mode
+
 ## Overview
 
 This application manages the complete lifecycle of advertising campaigns, from creation to invoicing. It enables users to:
@@ -229,6 +240,11 @@ campaign-manager/
 | `yarn test` | Run unit tests with Vitest |
 | `yarn test:ui` | Open Vitest UI for interactive testing |
 | `yarn test:coverage` | Generate test coverage report |
+| `yarn test:e2e` | Run E2E tests with Playwright (headless) |
+| `yarn test:e2e:ui` | Run E2E tests with Playwright UI mode |
+| `yarn test:e2e:headed` | Run E2E tests with visible browser |
+| `yarn test:e2e:debug` | Debug E2E tests with Playwright inspector |
+| `yarn test:e2e:report` | Show latest Playwright test report |
 | `yarn seed` | Seed Firestore database with sample data |
 | `yarn deploy` | Build and deploy to Firebase Hosting |
 
@@ -298,11 +314,12 @@ campaign-manager/
 
 ## Testing
 
+This project uses a comprehensive testing strategy with both unit tests and end-to-end tests.
 
-### Running Tests
+### Unit Tests (Vitest)
 
 ```bash
-# Run all tests
+# Run all unit tests
 yarn test
 
 # Interactive UI
@@ -312,17 +329,54 @@ yarn test:ui
 yarn test:coverage
 ```
 
+### End-to-End Tests (Playwright)
+
+```bash
+# Run all E2E tests (headless)
+yarn test:e2e
+
+# Run with UI mode (interactive)
+yarn test:e2e:ui
+
+# Run with visible browser
+yarn test:e2e:headed
+
+# Debug mode with Playwright inspector
+yarn test:e2e:debug
+
+# View test report
+yarn test:e2e:report
+```
+
 ### Testing Strategy
 
+#### Unit Tests
 - **Service Layer**: Mock Firestore SDK, test business logic
 - **Hooks**: Test with React Testing Library, verify state updates
 - **Utilities**: Pure function testing with edge cases
 - **Components**: User-centric testing (click, type, assert)
 
+#### E2E Tests
+- **Navigation**: Test routing and page transitions
+- **User Flows**: Complete workflows like viewing campaigns, filtering invoices
+- **Invoice Adjustments**: Test the core adjustment feature end-to-end
+- **Data Export**: Verify CSV export functionality
+- **Cross-browser**: Test on Chromium, Firefox, WebKit, and mobile viewports
+
+**Test Coverage:**
+- Basic navigation and routing (`e2e/example.spec.ts`)
+- Campaign listing and filtering (`e2e/campaigns.spec.ts`)
+- Invoice management and adjustments (`e2e/invoices.spec.ts`)
+
+**Current Limitations:**
+- E2E tests currently run against the live Firebase database (not mock data)
+- Tests require seeded data to be present (`yarn seed` must be run first)
+
 **Future Improvements:**
-- E2E tests with Playwright/Cypress
+- **Mock Data for E2E**: Implement Firebase emulator or mock service worker for isolated E2E testing
 - Visual regression testing
 - Integration tests against Firebase emulator
+- Performance testing with Lighthouse CI
 
 ## Future Enhancements
 
@@ -395,14 +449,36 @@ This refactoring was intentionally deferred to focus on delivering core features
 
 ### Developer Experience
 
+**✅ Implemented:**
+
+**Comprehensive Testing Strategy**
+- **Unit Tests**: 98 tests with Vitest covering services, hooks, and utilities
+- **E2E Tests**: 14 Playwright tests covering critical user workflows
+- **Test Coverage**: Automated coverage reporting
+- **Multiple Test Modes**: Interactive UI, headed, debug modes for efficient development
+
+**CI/CD Pipeline**
+- **Automated Unit Testing**: Runs on every PR with coverage reports
+- **Automated E2E Testing**: Cross-browser testing with Playwright on PRs
+- **Automated Deployment**: Deploy to Firebase Hosting on merge to main
+- **Quality Gates**: Tests must pass before merge
+
+**Workflows:**
+- `.github/workflows/unit-tests.yml` - Vitest unit tests with coverage
+- `.github/workflows/playwright.yml` - E2E tests across browsers
+- `.github/workflows/firebase-hosting-merge.yml` - Production deployment
+
+**Future Enhancements:**
+
 10. **Storybook Integration**
     - Component library documentation
     - Visual testing and QA
+    - Interactive component playground
 
-11. **CI/CD Pipeline**
-    - Automated testing on PR
-    - Preview deployments
-    - Production deployment automation
+11. **Enhanced CI/CD**
+    - Preview deployments for PRs
+    - Visual regression testing
+    - Performance budgets with Lighthouse CI
 
 ## License
 

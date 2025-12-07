@@ -10,12 +10,14 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     css: true,
     include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    exclude: ['node_modules', 'dist', 'e2e', '.git', '.cache'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
         'src/test/',
+        'e2e/',
         '**/*.d.ts',
         '**/*.config.*',
         '**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
