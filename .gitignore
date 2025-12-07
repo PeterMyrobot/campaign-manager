@@ -37,3 +37,8 @@ public/
 
 # Personal notes and specs
 spec/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/

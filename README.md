@@ -229,6 +229,11 @@ campaign-manager/
 | `yarn test` | Run unit tests with Vitest |
 | `yarn test:ui` | Open Vitest UI for interactive testing |
 | `yarn test:coverage` | Generate test coverage report |
+| `yarn test:e2e` | Run E2E tests with Playwright (headless) |
+| `yarn test:e2e:ui` | Run E2E tests with Playwright UI mode |
+| `yarn test:e2e:headed` | Run E2E tests with visible browser |
+| `yarn test:e2e:debug` | Debug E2E tests with Playwright inspector |
+| `yarn test:e2e:report` | Show latest Playwright test report |
 | `yarn seed` | Seed Firestore database with sample data |
 | `yarn deploy` | Build and deploy to Firebase Hosting |
 
@@ -298,11 +303,12 @@ campaign-manager/
 
 ## Testing
 
+This project uses a comprehensive testing strategy with both unit tests and end-to-end tests.
 
-### Running Tests
+### Unit Tests (Vitest)
 
 ```bash
-# Run all tests
+# Run all unit tests
 yarn test
 
 # Interactive UI
@@ -312,17 +318,49 @@ yarn test:ui
 yarn test:coverage
 ```
 
+### End-to-End Tests (Playwright)
+
+```bash
+# Run all E2E tests (headless)
+yarn test:e2e
+
+# Run with UI mode (interactive)
+yarn test:e2e:ui
+
+# Run with visible browser
+yarn test:e2e:headed
+
+# Debug mode with Playwright inspector
+yarn test:e2e:debug
+
+# View test report
+yarn test:e2e:report
+```
+
 ### Testing Strategy
 
+#### Unit Tests
 - **Service Layer**: Mock Firestore SDK, test business logic
 - **Hooks**: Test with React Testing Library, verify state updates
 - **Utilities**: Pure function testing with edge cases
 - **Components**: User-centric testing (click, type, assert)
 
+#### E2E Tests
+- **Navigation**: Test routing and page transitions
+- **User Flows**: Complete workflows like viewing campaigns, filtering invoices
+- **Invoice Adjustments**: Test the core adjustment feature end-to-end
+- **Data Export**: Verify CSV export functionality
+- **Cross-browser**: Test on Chromium, Firefox, WebKit, and mobile viewports
+
+**Test Coverage:**
+- Basic navigation and routing (`e2e/example.spec.ts`)
+- Campaign listing and filtering (`e2e/campaigns.spec.ts`)
+- Invoice management and adjustments (`e2e/invoices.spec.ts`)
+
 **Future Improvements:**
-- E2E tests with Playwright/Cypress
 - Visual regression testing
 - Integration tests against Firebase emulator
+- Performance testing with Lighthouse CI
 
 ## Future Enhancements
 
