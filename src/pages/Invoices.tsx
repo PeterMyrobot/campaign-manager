@@ -5,15 +5,10 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { DateRangeFilter } from '@/components/ui/date-range-filter'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { FilterBadge } from '@/components/FilterBadge'
 import { BulkActionToolbar } from '@/components/BulkActionToolbar'
 import DataTable from '@/components/DataTable'
@@ -377,51 +372,22 @@ function Invoices() {
                 {/* Campaign Filter */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium leading-none">Campaign</label>
-                  <Select
-                    value={dataFilters.campaignId || "all"}
-                    onValueChange={(value) => {
+                  <SearchableSelect
+                    options={campaigns.map((campaign) => ({
+                      label: campaign.name,
+                      value: campaign.id,
+                    }))}
+                    value={dataFilters.campaignId}
+                    onChange={(value) => {
                       handleFilterChange({
-                        campaignId: value === "all" ? undefined : value,
+                        campaignId: value,
                       })
                     }}
-                  >
-                    <SelectTrigger size="sm" className="w-full">
-                      <SelectValue placeholder="All campaigns">
-                        {dataFilters.campaignId
-                          ? (() => {
-                            const campaign = campaigns.find(c => c.id === dataFilters.campaignId)
-                            const name = campaign?.name || ''
-                            return name.length > 25 ? `${name.slice(0, 25)}...` : name
-                          })()
-                          : "All campaigns"
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="max-w-[280px]">
-                      <SelectItem value="all">All campaigns</SelectItem>
-                      {campaigns.map((campaign) => {
-                        const isLong = campaign.name.length > 35
-                        const displayName = isLong ? `${campaign.name.slice(0, 35)}...` : campaign.name
-
-                        return (
-                          <TooltipProvider key={campaign.id} delayDuration={300}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <SelectItem value={campaign.id} className="cursor-pointer">
-                                  <span className="block truncate max-w-60">{displayName}</span>
-                                </SelectItem>
-                              </TooltipTrigger>
-                              {isLong && (
-                                <TooltipContent side="left" className="max-w-xs">
-                                  <p className="wrap-break-word">{campaign.name}</p>
-                                </TooltipContent>
-                              )}
-                            </Tooltip>
-                          </TooltipProvider>
-                        )
-                      })}
-                    </SelectContent>
-                  </Select>
+                    placeholder="All campaigns"
+                    searchPlaceholder="Search campaigns..."
+                    emptyText="No campaigns found"
+                    className="w-full"
+                  />
                 </div>
 
                 {/* Date Type Filter */}

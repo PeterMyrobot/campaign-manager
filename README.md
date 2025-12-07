@@ -67,6 +67,9 @@ not well adjust what data to export
 
 - **Analytics Dashboard**: Real-time metrics with charts (revenue trends, campaign status distribution, invoice aging)
 - **Advanced Filtering**: Multi-criteria filtering with date ranges and status selection
+  - **Searchable Filters**: Campaign and invoice filters with built-in search capability for handling 200-300+ items efficiently
+  - Applied across all pages: Invoices, Line Items, and Change Logs
+  - Real-time search filtering with keyboard navigation support
 - **Modern UI**: Clean, professional interface with consistent design system
 - **Performance**: Cursor-based pagination, optimistic updates, and React Query caching
 
@@ -111,6 +114,10 @@ campaign-manager/
 ├── src/
 │   ├── components/          # Reusable UI components
 │   │   ├── ui/             # Base UI primitives (shadcn/ui style)
+│   │   │   ├── searchable-select.tsx  # Searchable dropdown for large datasets
+│   │   │   ├── multi-select.tsx
+│   │   │   ├── date-range-filter.tsx
+│   │   │   └── ...
 │   │   ├── AdjustmentModal.tsx
 │   │   ├── ChangeLogList.tsx
 │   │   ├── DataTable.tsx
