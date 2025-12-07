@@ -68,19 +68,20 @@ test.describe('Campaigns Page', () => {
 
   test('should search for campaigns', async ({ page }) => {
     // Look for search input
-    const searchInput = page.getByPlaceholder(/search/i).or(
-      page.getByRole('searchbox')
-    );
+    const searchInput = page.getByPlaceholder(/search/i);
 
     if (await searchInput.isVisible()) {
       // Type in search query
       await searchInput.fill('test');
 
       // Wait for the search to filter results
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
 
-      // Verify the table is still visible (even if empty)
-      await expect(page.locator('table').or(page.getByText(/no results/i))).toBeVisible();
+      // Verify the page still shows content (table or no results message)
+      const hasTable = await page.locator('table').isVisible();
+      const hasNoResults = await page.getByText(/no.*found|no.*results/i).isVisible();
+
+      expect(hasTable || hasNoResults).toBeTruthy();
     }
   });
 

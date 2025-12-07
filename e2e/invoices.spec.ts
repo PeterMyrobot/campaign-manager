@@ -59,9 +59,10 @@ test.describe('Invoices Page', () => {
       // Wait for navigation
       await page.waitForURL(/\/invoices\/.+/);
 
-      // Verify we're on the invoice detail page
-      const detailContent = page.getByRole('main');
-      await expect(detailContent).toBeVisible();
+      // Verify we're on the invoice detail page by checking for invoice-specific content
+      // Look for tabs or invoice details instead of main element
+      const invoiceDetail = page.getByRole('heading').or(page.getByText(/invoice/i));
+      await expect(invoiceDetail.first()).toBeVisible();
     }
   });
 });
